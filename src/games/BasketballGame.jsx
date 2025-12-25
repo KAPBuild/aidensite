@@ -225,7 +225,7 @@ export default function BasketballGame({ onBack }) {
           )}
 
           {/* Top Scores */}
-          {topScores.length > 0 && gameState === 'gameOver' && (
+          {topScores.length > 0 && gameOver && (
             <div className="bg-orange-100 rounded-xl p-6 border-3 border-orange-300">
               <h3 className="text-xl font-bold text-orange-700 mb-4 text-center">🏆 Your Best Scores</h3>
               <div className="space-y-2">
