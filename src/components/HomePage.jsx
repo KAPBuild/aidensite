@@ -2,20 +2,42 @@ import React, { useState, useRef, useEffect } from 'react'
 import DoodleCanvas from './DoodleCanvas'
 
 export default function HomePage() {
-  const [showGreeting, setShowGreeting] = useState(true)
+  const [showGreeting, setShowGreeting] = useState(() => {
+    // Only show greeting if visits < 2
+    const visits = localStorage.getItem('aidenVisits') || '0'
+    return parseInt(visits) < 2
+  })
 
   useEffect(() => {
-    // Auto-hide greeting after 8 seconds
-    const timer = setTimeout(() => setShowGreeting(false), 8000)
-    return () => clearTimeout(timer)
-  }, [])
+    if (showGreeting) {
+      // Auto-hide greeting after 5 seconds on first visit
+      const timer = setTimeout(() => setShowGreeting(false), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [showGreeting])
+
+  const handleCloseGreeting = () => {
+    // Increment visit counter and hide greeting
+    const currentVisits = parseInt(localStorage.getItem('aidenVisits') || '0')
+    localStorage.setItem('aidenVisits', String(currentVisits + 1))
+    setShowGreeting(false)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-300 via-blue-300 to-purple-400 p-4">
       {/* Christmas Greeting */}
       {showGreeting && (
-        <div className="fixed inset-0 flex items-center justify-center z-40 bg-black/30 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 md:p-12 text-center max-w-2xl mx-4 shadow-2xl animate-pulse border-4 border-yellow-300">
+        <div className="fixed inset-0 flex items-center justify-center z-40 bg-black/30 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 md:p-12 text-center max-w-2xl mx-auto shadow-2xl animate-pulse border-4 border-yellow-300 relative">
+            {/* Close Button */}
+            <button
+              onClick={handleCloseGreeting}
+              className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white w-10 h-10 rounded-full font-bold text-xl transition-all hover:scale-110 flex items-center justify-center"
+              title="Close"
+            >
+              ✕
+            </button>
+
             <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-green-500 mb-4">
               🎄 Merry Christmas Bro! 🎄
             </h1>
@@ -28,6 +50,14 @@ export default function HomePage() {
             <div className="mt-8 text-4xl animate-bounce">
               ⚽ 🎨 🔴 🏎️ ♟️ 🎮
             </div>
+
+            {/* Dismiss Button */}
+            <button
+              onClick={handleCloseGreeting}
+              className="mt-8 bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-xl transition-all hover:scale-105"
+            >
+              Got it! 👍
+            </button>
           </div>
         </div>
       )}
