@@ -4,80 +4,79 @@ export default function DoodleCanvas() {
   const canvasRef = useRef(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [color, setColor] = useState('#000000')
-  const [isErasing, setIsErasing] = useState(false)
   const [brushSize, setBrushSize] = useState(5)
-  const contextRef = useRef(null)
+  const [tool, setTool] = useState('pen') // pen, line, rectangle, circle, text, fill
   const [history, setHistory] = useState([])
-  const [isMobile, setIsMobile] = useState(false)
+  const [isFullScreen, setIsFullScreen] = useState(false)
+  const [canvasSize, setCanvasSize] = useState('medium') // small, medium, large
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [textInput, setTextInput] = useState('')
+  const [fontSize, setFontSize] = useState(16)
+  const [zoom, setZoom] = useState(1)
+  const contextRef = useRef(null)
+  const [startPos, setStartPos] = useState(null)
+  const colorPickerRef = useRef(null)
+
+  const sizes = {
+    small: { w: 600, h: 400 },
+    medium: { w: 800, h: 600 },
+    large: { w: 1000, h: 700 },
+  }
 
   // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current
-    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    setIsMobile(isMobileDevice)
+    if (!canvas) return
 
-    canvas.width = isMobileDevice ? Math.min(500, window.innerWidth - 40) : Math.min(700, window.innerWidth - 40)
-    canvas.height = 400
+    const size = sizes[canvasSize]
+    canvas.width = size.w
+    canvas.height = size.h
 
     const context = canvas.getContext('2d', { willReadFrequently: true })
     context.fillStyle = 'white'
     context.fillRect(0, 0, canvas.width, canvas.height)
+    context.lineCap = 'round'
+    context.lineJoin = 'round'
     contextRef.current = context
 
-    // Save initial state
     setHistory([canvas.toDataURL()])
+  }, [canvasSize])
 
-    // Handle window resize
-    const handleResize = () => {
-      const newWidth = isMobileDevice ? Math.min(500, window.innerWidth - 40) : Math.min(700, window.innerWidth - 40)
-      const oldCanvas = canvas
-      const newCanvas = document.createElement('canvas')
-      newCanvas.width = newWidth
-      newCanvas.height = 400
-
-      const newContext = newCanvas.getContext('2d', { willReadFrequently: true })
-      newContext.fillStyle = 'white'
-      newContext.fillRect(0, 0, newWidth, 400)
-      newContext.drawImage(oldCanvas, 0, 0)
-
-      canvas.width = newWidth
-      canvas.height = 400
-      contextRef.current = newContext
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  // Get mouse/touch position
   const getCoordinates = (e) => {
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
 
+    let x, y
     if (e.touches && e.touches.length > 0) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      }
+      x = e.touches[0].clientX - rect.left
+      y = e.touches[0].clientY - rect.top
     } else if (e.nativeEvent) {
-      return {
-        x: e.nativeEvent.offsetX || e.clientX - rect.left,
-        y: e.nativeEvent.offsetY || e.clientY - rect.top,
-      }
+      x = e.nativeEvent.offsetX || e.clientX - rect.left
+      y = e.nativeEvent.offsetY || e.clientY - rect.top
     }
-    return { x: 0, y: 0 }
+
+    // Account for zoom
+    return {
+      x: x / zoom,
+      y: y / zoom,
+    }
   }
 
-  // Start drawing
   const startDrawing = (e) => {
     e.preventDefault()
     const { x, y } = getCoordinates(e)
+
+    if (tool === 'text') {
+      setStartPos({ x, y })
+      return
+    }
+
     contextRef.current.beginPath()
     contextRef.current.moveTo(x, y)
+    setStartPos({ x, y })
     setIsDrawing(true)
   }
 
-  // Draw on canvas
   const draw = (e) => {
     if (!isDrawing) return
     e.preventDefault()
@@ -85,156 +84,373 @@ export default function DoodleCanvas() {
     const { x, y } = getCoordinates(e)
     const context = contextRef.current
 
-    if (isErasing) {
-      context.clearRect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize)
-    } else {
+    if (tool === 'pen') {
       context.strokeStyle = color
       context.lineWidth = brushSize
-      context.lineJoin = 'round'
-      context.lineCap = 'round'
       context.lineTo(x, y)
       context.stroke()
     }
   }
 
-  // Stop drawing
   const stopDrawing = (e) => {
+    if (!isDrawing && tool !== 'text') return
     e.preventDefault()
+
+    const { x, y } = getCoordinates(e)
+    const context = contextRef.current
+
+    if (tool === 'line' && startPos) {
+      context.strokeStyle = color
+      context.lineWidth = brushSize
+      context.beginPath()
+      context.moveTo(startPos.x, startPos.y)
+      context.lineTo(x, y)
+      context.stroke()
+    } else if (tool === 'rectangle' && startPos) {
+      context.strokeStyle = color
+      context.lineWidth = brushSize
+      const w = x - startPos.x
+      const h = y - startPos.y
+      context.strokeRect(startPos.x, startPos.y, w, h)
+    } else if (tool === 'circle' && startPos) {
+      context.strokeStyle = color
+      context.lineWidth = brushSize
+      const radius = Math.sqrt(Math.pow(x - startPos.x, 2) + Math.pow(y - startPos.y, 2))
+      context.beginPath()
+      context.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI)
+      context.stroke()
+    }
+
     contextRef.current.closePath()
     setIsDrawing(false)
-    // Save to history
+    setStartPos(null)
+    saveToHistory()
+  }
+
+  const handleTextTool = (e) => {
+    if (tool === 'text' && startPos && textInput) {
+      const context = contextRef.current
+      context.fillStyle = color
+      context.font = `${fontSize}px Arial`
+      context.fillText(textInput, startPos.x, startPos.y)
+      setTextInput('')
+      saveToHistory()
+      setStartPos(null)
+    }
+  }
+
+  const fillCanvas = (e) => {
+    const { x, y } = getCoordinates(e)
+    const context = contextRef.current
+
+    const imageData = context.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)
+    const data = imageData.data
+
+    // Simple flood fill
+    const targetColor = getPixelColor(imageData, Math.floor(x), Math.floor(y))
+    const fillColor = hexToRgba(color)
+
+    const stack = [[Math.floor(x), Math.floor(y)]]
+    const visited = new Set()
+
+    while (stack.length > 0) {
+      const [px, py] = stack.pop()
+      const key = `${px},${py}`
+
+      if (visited.has(key)) continue
+      if (px < 0 || px >= canvasRef.current.width || py < 0 || py >= canvasRef.current.height) continue
+
+      const idx = (py * canvasRef.current.width + px) * 4
+      const currentColor = [data[idx], data[idx + 1], data[idx + 2], data[idx + 3]]
+
+      if (colorsMatch(currentColor, targetColor)) {
+        data[idx] = fillColor.r
+        data[idx + 1] = fillColor.g
+        data[idx + 2] = fillColor.b
+        data[idx + 3] = fillColor.a
+
+        visited.add(key)
+        stack.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1])
+      }
+    }
+
+    context.putImageData(imageData, 0, 0)
+    saveToHistory()
+  }
+
+  const getPixelColor = (imageData, x, y) => {
+    const idx = (y * imageData.width + x) * 4
+    return [
+      imageData.data[idx],
+      imageData.data[idx + 1],
+      imageData.data[idx + 2],
+      imageData.data[idx + 3],
+    ]
+  }
+
+  const colorsMatch = (color1, color2) => {
+    return color1.every((c, i) => Math.abs(c - color2[i]) < 10)
+  }
+
+  const hexToRgba = (hex) => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return { r, g, b, a: 255 }
+  }
+
+  const saveToHistory = () => {
     setHistory([...history, canvasRef.current.toDataURL()])
   }
 
-  // Clear canvas
-  const clearCanvas = () => {
-    const canvas = canvasRef.current
-    contextRef.current.fillStyle = 'white'
-    contextRef.current.fillRect(0, 0, canvas.width, canvas.height)
-    setHistory([canvas.toDataURL()])
-  }
-
-  // Undo
   const undo = () => {
     if (history.length > 1) {
       const newHistory = history.slice(0, -1)
       setHistory(newHistory)
       const img = new Image()
       img.onload = () => {
-        contextRef.current.fillStyle = 'white'
-        contextRef.current.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height)
-        contextRef.current.drawImage(img, 0, 0)
+        const context = contextRef.current
+        context.fillStyle = 'white'
+        context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+        context.drawImage(img, 0, 0)
       }
       img.src = newHistory[newHistory.length - 1]
     }
   }
 
-  // Save drawing
+  const clearCanvas = () => {
+    const context = contextRef.current
+    context.fillStyle = 'white'
+    context.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+    setHistory([canvasRef.current.toDataURL()])
+  }
+
   const saveDrawing = () => {
     const canvas = canvasRef.current
     const link = document.createElement('a')
-    link.download = `aiden-doodle-${new Date().getTime()}.png`
+    link.download = `aiden-drawing-${new Date().getTime()}.png`
     link.href = canvas.toDataURL()
     link.click()
   }
 
-  const colors = ['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFD700', '#FF69B4', '#00CED1', '#FF8C00']
+  const containerClass = isFullScreen ? 'fixed inset-0 z-50 bg-black p-4 flex flex-col' : 'space-y-4'
 
   return (
-    <div className="space-y-4">
-      {/* Canvas */}
-      <div className="flex justify-center">
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-          onTouchCancel={stopDrawing}
-          className="border-4 border-gray-800 bg-white rounded-lg shadow-lg max-w-full touch-none"
-          style={{ touchAction: 'none' }}
-        />
+    <div className={containerClass}>
+      {/* Header */}
+      <div className={`${isFullScreen ? 'flex justify-between items-center mb-4' : 'text-center mb-4'}`}>
+        <h2 className="text-2xl font-bold text-white">🎨 Drawing Canvas</h2>
+        <button
+          onClick={() => setIsFullScreen(!isFullScreen)}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold transition-all"
+        >
+          {isFullScreen ? '⛔ Exit Full Screen' : '⛶ Full Screen'}
+        </button>
       </div>
 
-      {/* Color Picker */}
-      <div className="flex flex-wrap gap-3 justify-center items-center">
-        <span className="font-bold text-gray-700 w-full text-center">Colors:</span>
-        {colors.map((c) => (
-          <button
-            key={c}
-            onClick={() => {
-              setColor(c)
-              setIsErasing(false)
+      <div className={isFullScreen ? 'flex-1 flex flex-col' : ''}>
+        {/* Canvas */}
+        <div className={`flex justify-center ${isFullScreen ? 'flex-1 overflow-auto' : ''}`}>
+          <canvas
+            ref={canvasRef}
+            onMouseDown={tool === 'fill' ? fillCanvas : startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={tool === 'fill' ? fillCanvas : startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+            onTouchCancel={stopDrawing}
+            className="border-4 border-gray-800 bg-white rounded-lg shadow-lg"
+            style={{
+              touchAction: 'none',
+              cursor: tool === 'text' ? 'text' : 'crosshair',
+              transform: `scale(${zoom})`,
+              transformOrigin: 'top left',
             }}
-            className={`${isMobile ? 'w-14 h-14' : 'w-12 h-12'} rounded-full border-4 transition-transform hover:scale-110 ${
-              color === c && !isErasing ? 'border-gray-800 scale-110 shadow-lg' : 'border-gray-300'
-            }`}
-            style={{ backgroundColor: c }}
-            title={c}
           />
-        ))}
-      </div>
-
-      {/* Brush Size */}
-      <div className="flex flex-col justify-center items-center gap-3">
-        <span className="font-bold text-gray-700">Brush Size:</span>
-        <div className="flex flex-wrap gap-2 justify-center">
-          {[3, 6, 10, 15, 20, 30].map((size) => (
-            <button
-              key={size}
-              onClick={() => setBrushSize(size)}
-              className={`px-4 py-2 rounded-lg font-bold transition-all ${
-                brushSize === size
-                  ? 'bg-blue-600 text-white scale-110'
-                  : 'bg-gray-300 text-gray-800 hover:bg-gray-400'
-              }`}
-            >
-              {size}px
-            </button>
-          ))}
         </div>
-      </div>
 
-      {/* Tools */}
-      <div className={`flex flex-wrap gap-3 justify-center ${isMobile ? 'flex-col' : ''}`}>
-        <button
-          onClick={() => setIsErasing(!isErasing)}
-          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} rounded-lg font-bold transition-all text-white ${
-            isErasing
-              ? 'bg-red-500 scale-110 shadow-lg'
-              : 'bg-orange-500 hover:bg-orange-600'
-          }`}
-        >
-          🧹 {isErasing ? 'Erasing' : 'Eraser'}
-        </button>
+        {/* Text Input (if text tool selected) */}
+        {tool === 'text' && startPos && (
+          <div className="bg-gray-800 rounded-lg p-4 mt-4 flex gap-2">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Enter text..."
+              className="flex-1 px-3 py-2 rounded border-2 border-purple-400"
+              autoFocus
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') handleTextTool(e)
+              }}
+            />
+            <button
+              onClick={handleTextTool}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold"
+            >
+              Add Text
+            </button>
+          </div>
+        )}
 
-        <button
-          onClick={undo}
-          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-bold`}
-        >
-          ↶ Undo
-        </button>
+        {/* Tools Bar */}
+        <div className={`bg-gray-900 rounded-xl p-4 mt-4 ${isFullScreen ? 'max-h-1/4 overflow-y-auto' : ''}`}>
+          {/* Tool Selection */}
+          <div className="mb-4">
+            <p className="text-white font-bold mb-2">Tools:</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'pen', emoji: '✏️', label: 'Pen' },
+                { id: 'line', emoji: '📏', label: 'Line' },
+                { id: 'rectangle', emoji: '▭', label: 'Rectangle' },
+                { id: 'circle', emoji: '●', label: 'Circle' },
+                { id: 'text', emoji: '📝', label: 'Text' },
+                { id: 'fill', emoji: '🪣', label: 'Fill' },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTool(t.id)}
+                  className={`px-3 py-2 rounded-lg font-bold transition-all ${
+                    tool === t.id
+                      ? 'bg-purple-600 text-white scale-110 shadow-lg'
+                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                  }`}
+                >
+                  {t.emoji} {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <button
-          onClick={clearCanvas}
-          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold`}
-        >
-          🗑️ Clear
-        </button>
+          {/* Brush Size */}
+          <div className="mb-4">
+            <p className="text-white font-bold mb-2">Brush Size: {brushSize}px</p>
+            <input
+              type="range"
+              min="1"
+              max="50"
+              value={brushSize}
+              onChange={(e) => setBrushSize(Number(e.target.value))}
+              className="w-full h-2 bg-gray-600 rounded-lg"
+            />
+          </div>
 
-        <button
-          onClick={saveDrawing}
-          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold`}
-        >
-          💾 Save
-        </button>
-      </div>
+          {/* Font Size (for text tool) */}
+          {tool === 'text' && (
+            <div className="mb-4">
+              <p className="text-white font-bold mb-2">Font Size: {fontSize}px</p>
+              <input
+                type="range"
+                min="8"
+                max="72"
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                className="w-full h-2 bg-gray-600 rounded-lg"
+              />
+            </div>
+          )}
 
-      <div className="text-center text-sm text-gray-600 mt-4">
-        💡 Tip: Draw with your mouse or touch! You can change colors, brush size, and use the eraser.
+          {/* Color Picker */}
+          <div className="mb-4">
+            <p className="text-white font-bold mb-2">Color:</p>
+            <div className="flex gap-2 flex-wrap items-center">
+              <button
+                onClick={() => setShowColorPicker(!showColorPicker)}
+                className="w-12 h-12 rounded-lg border-4 border-white shadow-lg"
+                style={{ backgroundColor: color }}
+              />
+              <input
+                ref={colorPickerRef}
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-12 cursor-pointer rounded"
+              />
+
+              {/* Quick color presets */}
+              {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFD700', '#FF69B4', '#00CED1', '#FF8C00', '#FFFFFF'].map(
+                (c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className={`w-8 h-8 rounded border-2 transition-all ${
+                      color === c ? 'border-white scale-110 shadow-lg' : 'border-gray-600'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Canvas Size */}
+          <div className="mb-4">
+            <p className="text-white font-bold mb-2">Canvas Size:</p>
+            <div className="flex gap-2 flex-wrap">
+              {Object.keys(sizes).map((size) => (
+                <button
+                  key={size}
+                  onClick={() => setCanvasSize(size)}
+                  className={`px-3 py-2 rounded-lg font-bold transition-all ${
+                    canvasSize === size
+                      ? 'bg-blue-600 text-white scale-105 shadow-lg'
+                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                  }`}
+                >
+                  {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Zoom */}
+          <div className="mb-4">
+            <p className="text-white font-bold mb-2">Zoom: {(zoom * 100).toFixed(0)}%</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold"
+              >
+                -
+              </button>
+              <button
+                onClick={() => setZoom(1)}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold flex-1"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setZoom(Math.min(3, zoom + 0.1))}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={undo}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold flex-1 min-w-24"
+            >
+              ↶ Undo
+            </button>
+            <button
+              onClick={clearCanvas}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold flex-1 min-w-24"
+            >
+              🗑️ Clear
+            </button>
+            <button
+              onClick={saveDrawing}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold flex-1 min-w-24"
+            >
+              💾 Save
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
