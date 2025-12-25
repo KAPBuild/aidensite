@@ -8,6 +8,7 @@ export default function Navigation({ currentPage, setCurrentPage }) {
     { id: 'hotwheels', label: '🏎️ Hot Wheels', emoji: '🏎️' },
     { id: 'chess', label: '♟️ Chess', emoji: '♟️' },
     { id: 'games', label: '🎮 Games', emoji: '🎮' },
+    { id: 'retro', label: '👾 Retro', emoji: '👾' },
   ]
 
   return (

@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import SoccerClicker from '../games/SoccerClicker'
+import SoccerPenaltyShootout from '../games/SoccerPenaltyShootout'
+import BasketballGame from '../games/BasketballGame'
+import DinosaurRunner from '../games/DinosaurRunner'
 import MemoryGame from '../games/MemoryGame'
 
 export default function GamesSection() {
@@ -8,7 +10,9 @@ export default function GamesSection() {
   if (selectedGame) {
     return (
       <>
-        {selectedGame === 'soccer' && <SoccerClicker onBack={() => setSelectedGame(null)} />}
+        {selectedGame === 'penalty' && <SoccerPenaltyShootout onBack={() => setSelectedGame(null)} />}
+        {selectedGame === 'basketball' && <BasketballGame onBack={() => setSelectedGame(null)} />}
+        {selectedGame === 'dinosaur' && <DinosaurRunner onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'memory' && <MemoryGame onBack={() => setSelectedGame(null)} />}
       </>
     )
@@ -28,13 +32,27 @@ export default function GamesSection() {
         </div>
 
         {/* Games Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <GameCard
             emoji="⚽"
-            title="Soccer Clicker"
-            description="Click the soccer ball as fast as you can in 30 seconds!"
-            onClick={() => setSelectedGame('soccer')}
+            title="Penalty Shootout"
+            description="Test your shooting skills against hilarious AI goalkeepers!"
+            onClick={() => setSelectedGame('penalty')}
             color="from-blue-400 to-green-400"
+          />
+          <GameCard
+            emoji="🏀"
+            title="Basketball 3-Point"
+            description="Score as many 3-pointers as you can before time runs out!"
+            onClick={() => setSelectedGame('basketball')}
+            color="from-orange-400 to-yellow-400"
+          />
+          <GameCard
+            emoji="🦖"
+            title="Dinosaur Runner"
+            description="Help the dinosaur avoid obstacles! Tap to jump!"
+            onClick={() => setSelectedGame('dinosaur')}
+            color="from-green-400 to-teal-400"
           />
           <GameCard
             emoji="🃏"
@@ -49,8 +67,10 @@ export default function GamesSection() {
         <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
           <h2 className="text-2xl font-bold text-blue-600 mb-6 text-center">📊 Your Scores</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Leaderboard gameType="soccer" title="⚽ Soccer Clicker" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Leaderboard gameType="penalty" title="⚽ Penalty Shootout" />
+            <Leaderboard gameType="basketball" title="🏀 Basketball 3-Point" />
+            <Leaderboard gameType="dinosaur" title="🦖 Dinosaur Runner" />
             <Leaderboard gameType="memory" title="🃏 Memory Game" />
           </div>
         </div>

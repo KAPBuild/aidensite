@@ -5,6 +5,7 @@ import PokemonTracker from './components/PokemonTracker'
 import HotWheelsGallery from './components/HotWheelsGallery'
 import ChessGame from './components/ChessGame'
 import GamesSection from './components/GamesSection'
+import RetroGames from './components/RetroGames'
 import './App.css'
 
 function App() {
@@ -24,6 +25,8 @@ function App() {
         return <ChessGame />
       case 'games':
         return <GamesSection />
+      case 'retro':
+        return <RetroGames />
       default:
         return <HomePage />
     }

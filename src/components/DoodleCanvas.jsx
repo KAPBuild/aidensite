@@ -8,14 +8,18 @@ export default function DoodleCanvas() {
   const [brushSize, setBrushSize] = useState(5)
   const contextRef = useRef(null)
   const [history, setHistory] = useState([])
+  const [isMobile, setIsMobile] = useState(false)
 
   // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current
-    canvas.width = Math.min(600, window.innerWidth - 40)
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    setIsMobile(isMobileDevice)
+
+    canvas.width = isMobileDevice ? Math.min(500, window.innerWidth - 40) : Math.min(700, window.innerWidth - 40)
     canvas.height = 400
 
-    const context = canvas.getContext('2d')
+    const context = canvas.getContext('2d', { willReadFrequently: true })
     context.fillStyle = 'white'
     context.fillRect(0, 0, canvas.width, canvas.height)
     contextRef.current = context
@@ -25,13 +29,13 @@ export default function DoodleCanvas() {
 
     // Handle window resize
     const handleResize = () => {
-      const newWidth = Math.min(600, window.innerWidth - 40)
+      const newWidth = isMobileDevice ? Math.min(500, window.innerWidth - 40) : Math.min(700, window.innerWidth - 40)
       const oldCanvas = canvas
       const newCanvas = document.createElement('canvas')
       newCanvas.width = newWidth
       newCanvas.height = 400
 
-      const newContext = newCanvas.getContext('2d')
+      const newContext = newCanvas.getContext('2d', { willReadFrequently: true })
       newContext.fillStyle = 'white'
       newContext.fillRect(0, 0, newWidth, 400)
       newContext.drawImage(oldCanvas, 0, 0)
@@ -45,35 +49,57 @@ export default function DoodleCanvas() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Get mouse/touch position
+  const getCoordinates = (e) => {
+    const canvas = canvasRef.current
+    const rect = canvas.getBoundingClientRect()
+
+    if (e.touches && e.touches.length > 0) {
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top,
+      }
+    } else if (e.nativeEvent) {
+      return {
+        x: e.nativeEvent.offsetX || e.clientX - rect.left,
+        y: e.nativeEvent.offsetY || e.clientY - rect.top,
+      }
+    }
+    return { x: 0, y: 0 }
+  }
+
   // Start drawing
   const startDrawing = (e) => {
-    const { offsetX, offsetY } = e.nativeEvent
+    e.preventDefault()
+    const { x, y } = getCoordinates(e)
     contextRef.current.beginPath()
-    contextRef.current.moveTo(offsetX, offsetY)
+    contextRef.current.moveTo(x, y)
     setIsDrawing(true)
   }
 
   // Draw on canvas
   const draw = (e) => {
     if (!isDrawing) return
+    e.preventDefault()
 
-    const { offsetX, offsetY } = e.nativeEvent
+    const { x, y } = getCoordinates(e)
     const context = contextRef.current
 
     if (isErasing) {
-      context.clearRect(offsetX - brushSize / 2, offsetY - brushSize / 2, brushSize, brushSize)
+      context.clearRect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize)
     } else {
       context.strokeStyle = color
       context.lineWidth = brushSize
       context.lineJoin = 'round'
       context.lineCap = 'round'
-      context.lineTo(offsetX, offsetY)
+      context.lineTo(x, y)
       context.stroke()
     }
   }
 
   // Stop drawing
-  const stopDrawing = () => {
+  const stopDrawing = (e) => {
+    e.preventDefault()
     contextRef.current.closePath()
     setIsDrawing(false)
     // Save to history
@@ -127,13 +153,15 @@ export default function DoodleCanvas() {
           onTouchStart={startDrawing}
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
-          className="border-4 border-gray-800 bg-white rounded-lg shadow-lg max-w-full"
+          onTouchCancel={stopDrawing}
+          className="border-4 border-gray-800 bg-white rounded-lg shadow-lg max-w-full touch-none"
+          style={{ touchAction: 'none' }}
         />
       </div>
 
       {/* Color Picker */}
-      <div className="flex flex-wrap gap-2 justify-center items-center">
-        <span className="font-bold text-gray-700">Colors:</span>
+      <div className="flex flex-wrap gap-3 justify-center items-center">
+        <span className="font-bold text-gray-700 w-full text-center">Colors:</span>
         {colors.map((c) => (
           <button
             key={c}
@@ -141,8 +169,8 @@ export default function DoodleCanvas() {
               setColor(c)
               setIsErasing(false)
             }}
-            className={`w-10 h-10 rounded-full border-4 transition-transform hover:scale-110 ${
-              color === c && !isErasing ? 'border-gray-800 scale-110' : 'border-gray-300'
+            className={`${isMobile ? 'w-14 h-14' : 'w-12 h-12'} rounded-full border-4 transition-transform hover:scale-110 ${
+              color === c && !isErasing ? 'border-gray-800 scale-110 shadow-lg' : 'border-gray-300'
             }`}
             style={{ backgroundColor: c }}
             title={c}
@@ -151,24 +179,30 @@ export default function DoodleCanvas() {
       </div>
 
       {/* Brush Size */}
-      <div className="flex justify-center items-center gap-4">
+      <div className="flex flex-col justify-center items-center gap-3">
         <span className="font-bold text-gray-700">Brush Size:</span>
-        <input
-          type="range"
-          min="1"
-          max="30"
-          value={brushSize}
-          onChange={(e) => setBrushSize(Number(e.target.value))}
-          className="w-40 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
-        />
-        <span className="text-gray-700 font-bold">{brushSize}px</span>
+        <div className="flex flex-wrap gap-2 justify-center">
+          {[3, 6, 10, 15, 20, 30].map((size) => (
+            <button
+              key={size}
+              onClick={() => setBrushSize(size)}
+              className={`px-4 py-2 rounded-lg font-bold transition-all ${
+                brushSize === size
+                  ? 'bg-blue-600 text-white scale-110'
+                  : 'bg-gray-300 text-gray-800 hover:bg-gray-400'
+              }`}
+            >
+              {size}px
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tools */}
-      <div className="flex flex-wrap gap-3 justify-center">
+      <div className={`flex flex-wrap gap-3 justify-center ${isMobile ? 'flex-col' : ''}`}>
         <button
           onClick={() => setIsErasing(!isErasing)}
-          className={`btn px-4 py-2 rounded-lg font-bold transition-all text-white ${
+          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} rounded-lg font-bold transition-all text-white ${
             isErasing
               ? 'bg-red-500 scale-110 shadow-lg'
               : 'bg-orange-500 hover:bg-orange-600'
@@ -179,21 +213,21 @@ export default function DoodleCanvas() {
 
         <button
           onClick={undo}
-          className="btn px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-bold"
+          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-bold`}
         >
           ↶ Undo
         </button>
 
         <button
           onClick={clearCanvas}
-          className="btn px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold"
+          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold`}
         >
           🗑️ Clear
         </button>
 
         <button
           onClick={saveDrawing}
-          className="btn px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold"
+          className={`btn ${isMobile ? 'px-6 py-3 text-lg w-full' : 'px-4 py-2'} bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold`}
         >
           💾 Save
         </button>
