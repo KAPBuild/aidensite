@@ -5,22 +5,21 @@ export default function DoodleCanvas() {
   const [isDrawing, setIsDrawing] = useState(false)
   const [color, setColor] = useState('#000000')
   const [brushSize, setBrushSize] = useState(5)
-  const [tool, setTool] = useState('pen') // pen, line, rectangle, circle, text, fill
+  const [tool, setTool] = useState('pen')
   const [history, setHistory] = useState([])
   const [isFullScreen, setIsFullScreen] = useState(false)
-  const [canvasSize, setCanvasSize] = useState('medium') // small, medium, large
-  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [canvasSize, setCanvasSize] = useState('medium')
   const [textInput, setTextInput] = useState('')
   const [fontSize, setFontSize] = useState(16)
   const [zoom, setZoom] = useState(1)
+  const [showToolPanel, setShowToolPanel] = useState(true)
   const contextRef = useRef(null)
   const [startPos, setStartPos] = useState(null)
-  const colorPickerRef = useRef(null)
 
   const sizes = {
-    small: { w: 600, h: 400 },
-    medium: { w: 800, h: 600 },
-    large: { w: 1000, h: 700 },
+    small: { w: 400, h: 300 },
+    medium: { w: 600, h: 450 },
+    large: { w: 800, h: 600 },
   }
 
   // Initialize canvas
@@ -55,7 +54,6 @@ export default function DoodleCanvas() {
       y = e.nativeEvent.offsetY || e.clientY - rect.top
     }
 
-    // Account for zoom
     return {
       x: x / zoom,
       y: y / zoom,
@@ -146,7 +144,6 @@ export default function DoodleCanvas() {
     const imageData = context.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)
     const data = imageData.data
 
-    // Simple flood fill
     const targetColor = getPixelColor(imageData, Math.floor(x), Math.floor(y))
     const fillColor = hexToRgba(color)
 
@@ -180,12 +177,7 @@ export default function DoodleCanvas() {
 
   const getPixelColor = (imageData, x, y) => {
     const idx = (y * imageData.width + x) * 4
-    return [
-      imageData.data[idx],
-      imageData.data[idx + 1],
-      imageData.data[idx + 2],
-      imageData.data[idx + 3],
-    ]
+    return [imageData.data[idx], imageData.data[idx + 1], imageData.data[idx + 2], imageData.data[idx + 3]]
   }
 
   const colorsMatch = (color1, color2) => {
@@ -233,24 +225,118 @@ export default function DoodleCanvas() {
     link.click()
   }
 
-  const containerClass = isFullScreen ? 'fixed inset-0 z-50 bg-black p-4 flex flex-col' : 'space-y-4'
-
-  return (
-    <div className={containerClass}>
-      {/* Header */}
-      <div className={`${isFullScreen ? 'flex justify-between items-center mb-4' : 'text-center mb-4'}`}>
-        <h2 className="text-2xl font-bold text-white">🎨 Drawing Canvas</h2>
-        <button
-          onClick={() => setIsFullScreen(!isFullScreen)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold transition-all"
-        >
-          {isFullScreen ? '⛔ Exit Full Screen' : '⛶ Full Screen'}
-        </button>
+  const ToolPanel = () => (
+    <div className="bg-gray-900 rounded-xl p-4 space-y-4">
+      {/* Tool Selection */}
+      <div>
+        <p className="text-white font-bold mb-2 text-sm md:text-base">Tools:</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'pen', emoji: '✏️', label: 'Pen' },
+            { id: 'line', emoji: '📏', label: 'Line' },
+            { id: 'rectangle', emoji: '▭', label: 'Rect' },
+            { id: 'circle', emoji: '●', label: 'Circle' },
+            { id: 'text', emoji: '📝', label: 'Text' },
+            { id: 'fill', emoji: '🪣', label: 'Fill' },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTool(t.id)}
+              className={`px-2 py-1 md:px-3 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${
+                tool === t.id ? 'bg-purple-600 text-white scale-110 shadow-lg' : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
+              {t.emoji}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className={isFullScreen ? 'flex-1 flex flex-col' : ''}>
-        {/* Canvas */}
-        <div className={`flex justify-center ${isFullScreen ? 'flex-1 overflow-auto' : ''}`}>
+      {/* Brush Size */}
+      <div>
+        <p className="text-white font-bold text-xs md:text-sm mb-2">Brush: {brushSize}px</p>
+        <input type="range" min="1" max="50" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-full h-2 bg-gray-600 rounded-lg" />
+      </div>
+
+      {/* Font Size */}
+      {tool === 'text' && (
+        <div>
+          <p className="text-white font-bold text-xs md:text-sm mb-2">Font: {fontSize}px</p>
+          <input type="range" min="8" max="72" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className="w-full h-2 bg-gray-600 rounded-lg" />
+        </div>
+      )}
+
+      {/* Color */}
+      <div>
+        <p className="text-white font-bold text-xs md:text-sm mb-2">Color:</p>
+        <div className="flex gap-2 flex-wrap items-center">
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-10 h-10 cursor-pointer rounded" />
+          {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFD700', '#FF69B4', '#00CED1', '#FF8C00'].map((c) => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              className={`w-6 h-6 rounded border-2 transition-all ${color === c ? 'border-white scale-110' : 'border-gray-600'}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Canvas Size */}
+      <div>
+        <p className="text-white font-bold text-xs md:text-sm mb-2">Canvas:</p>
+        <div className="flex gap-2">
+          {Object.keys(sizes).map((size) => (
+            <button
+              key={size}
+              onClick={() => setCanvasSize(size)}
+              className={`px-2 py-1 rounded text-xs font-bold transition-all ${
+                canvasSize === size ? 'bg-blue-600 text-white' : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
+              {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Zoom */}
+      <div>
+        <p className="text-white font-bold text-xs md:text-sm mb-2">Zoom: {(zoom * 100).toFixed(0)}%</p>
+        <div className="flex gap-2">
+          <button onClick={() => setZoom(Math.max(0.5, zoom - 0.1))} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs font-bold flex-1">
+            -
+          </button>
+          <button onClick={() => setZoom(1)} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs font-bold flex-1">
+            Reset
+          </button>
+          <button onClick={() => setZoom(Math.min(3, zoom + 0.1))} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs font-bold flex-1">
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button onClick={undo} className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs font-bold flex-1">
+          ↶ Undo
+        </button>
+        <button onClick={clearCanvas} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-bold flex-1">
+          Clear
+        </button>
+        <button onClick={saveDrawing} className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-bold flex-1">
+          Save
+        </button>
+      </div>
+    </div>
+  )
+
+  // Full Screen Mode
+  if (isFullScreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col md:flex-row">
+        {/* Canvas Area */}
+        <div className="flex-1 flex items-center justify-center overflow-auto p-2 md:p-4">
           <canvas
             ref={canvasRef}
             onMouseDown={tool === 'fill' ? fillCanvas : startDrawing}
@@ -261,197 +347,116 @@ export default function DoodleCanvas() {
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
             onTouchCancel={stopDrawing}
-            className="border-4 border-gray-800 bg-white rounded-lg shadow-lg"
+            className="border-4 border-gray-600 bg-white rounded-lg shadow-lg"
             style={{
               touchAction: 'none',
               cursor: tool === 'text' ? 'text' : 'crosshair',
               transform: `scale(${zoom})`,
               transformOrigin: 'top left',
+              maxWidth: '100%',
+              maxHeight: '100%',
             }}
           />
         </div>
 
-        {/* Text Input (if text tool selected) */}
-        {tool === 'text' && startPos && (
-          <div className="bg-gray-800 rounded-lg p-4 mt-4 flex gap-2">
-            <input
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              placeholder="Enter text..."
-              className="flex-1 px-3 py-2 rounded border-2 border-purple-400"
-              autoFocus
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') handleTextTool(e)
-              }}
-            />
-            <button
-              onClick={handleTextTool}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold"
-            >
-              Add Text
+        {/* Tools Sidebar - Toggle on mobile */}
+        <div className={`${showToolPanel ? 'block' : 'hidden'} md:block w-full md:w-80 bg-gray-950 border-l border-gray-700 p-4 overflow-y-auto`}>
+          {/* Header */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-white font-bold text-lg">🎨 Tools</h2>
+            <button onClick={() => setIsFullScreen(false)} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-bold">
+              Exit ✕
             </button>
           </div>
-        )}
 
-        {/* Tools Bar */}
-        <div className={`bg-gray-900 rounded-xl p-4 mt-4 ${isFullScreen ? 'max-h-1/4 overflow-y-auto' : ''}`}>
-          {/* Tool Selection */}
-          <div className="mb-4">
-            <p className="text-white font-bold mb-2">Tools:</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'pen', emoji: '✏️', label: 'Pen' },
-                { id: 'line', emoji: '📏', label: 'Line' },
-                { id: 'rectangle', emoji: '▭', label: 'Rectangle' },
-                { id: 'circle', emoji: '●', label: 'Circle' },
-                { id: 'text', emoji: '📝', label: 'Text' },
-                { id: 'fill', emoji: '🪣', label: 'Fill' },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTool(t.id)}
-                  className={`px-3 py-2 rounded-lg font-bold transition-all ${
-                    tool === t.id
-                      ? 'bg-purple-600 text-white scale-110 shadow-lg'
-                      : 'bg-gray-700 text-white hover:bg-gray-600'
-                  }`}
-                >
-                  {t.emoji} {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Brush Size */}
-          <div className="mb-4">
-            <p className="text-white font-bold mb-2">Brush Size: {brushSize}px</p>
-            <input
-              type="range"
-              min="1"
-              max="50"
-              value={brushSize}
-              onChange={(e) => setBrushSize(Number(e.target.value))}
-              className="w-full h-2 bg-gray-600 rounded-lg"
-            />
-          </div>
-
-          {/* Font Size (for text tool) */}
-          {tool === 'text' && (
-            <div className="mb-4">
-              <p className="text-white font-bold mb-2">Font Size: {fontSize}px</p>
+          {/* Text Input */}
+          {tool === 'text' && startPos && (
+            <div className="bg-gray-800 rounded-lg p-3 mb-4 flex gap-2">
               <input
-                type="range"
-                min="8"
-                max="72"
-                value={fontSize}
-                onChange={(e) => setFontSize(Number(e.target.value))}
-                className="w-full h-2 bg-gray-600 rounded-lg"
+                type="text"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Text..."
+                className="flex-1 px-2 py-1 rounded text-sm border-2 border-purple-400"
+                autoFocus
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') handleTextTool(e)
+                }}
               />
+              <button onClick={handleTextTool} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded font-bold text-sm">
+                Add
+              </button>
             </div>
           )}
 
-          {/* Color Picker */}
-          <div className="mb-4">
-            <p className="text-white font-bold mb-2">Color:</p>
-            <div className="flex gap-2 flex-wrap items-center">
-              <button
-                onClick={() => setShowColorPicker(!showColorPicker)}
-                className="w-12 h-12 rounded-lg border-4 border-white shadow-lg"
-                style={{ backgroundColor: color }}
-              />
-              <input
-                ref={colorPickerRef}
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-12 cursor-pointer rounded"
-              />
-
-              {/* Quick color presets */}
-              {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFD700', '#FF69B4', '#00CED1', '#FF8C00', '#FFFFFF'].map(
-                (c) => (
-                  <button
-                    key={c}
-                    onClick={() => setColor(c)}
-                    className={`w-8 h-8 rounded border-2 transition-all ${
-                      color === c ? 'border-white scale-110 shadow-lg' : 'border-gray-600'
-                    }`}
-                    style={{ backgroundColor: c }}
-                  />
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Canvas Size */}
-          <div className="mb-4">
-            <p className="text-white font-bold mb-2">Canvas Size:</p>
-            <div className="flex gap-2 flex-wrap">
-              {Object.keys(sizes).map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setCanvasSize(size)}
-                  className={`px-3 py-2 rounded-lg font-bold transition-all ${
-                    canvasSize === size
-                      ? 'bg-blue-600 text-white scale-105 shadow-lg'
-                      : 'bg-gray-700 text-white hover:bg-gray-600'
-                  }`}
-                >
-                  {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Zoom */}
-          <div className="mb-4">
-            <p className="text-white font-bold mb-2">Zoom: {(zoom * 100).toFixed(0)}%</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold"
-              >
-                -
-              </button>
-              <button
-                onClick={() => setZoom(1)}
-                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold flex-1"
-              >
-                Reset
-              </button>
-              <button
-                onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={undo}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold flex-1 min-w-24"
-            >
-              ↶ Undo
-            </button>
-            <button
-              onClick={clearCanvas}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold flex-1 min-w-24"
-            >
-              🗑️ Clear
-            </button>
-            <button
-              onClick={saveDrawing}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold flex-1 min-w-24"
-            >
-              💾 Save
-            </button>
-          </div>
+          <ToolPanel />
         </div>
+
+        {/* Mobile Toggle Button */}
+        {!showToolPanel && (
+          <button onClick={() => setShowToolPanel(true)} className="fixed bottom-4 right-4 md:hidden bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full font-bold text-lg shadow-lg">
+            🎨
+          </button>
+        )}
       </div>
+    )
+  }
+
+  // Normal Mode
+  return (
+    <div className="space-y-3 md:space-y-4">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg md:text-2xl font-bold text-white">🎨 Drawing Canvas</h2>
+        <button onClick={() => setIsFullScreen(true)} className="bg-purple-600 hover:bg-purple-700 text-white px-3 md:px-4 py-2 rounded-lg font-bold text-sm md:text-base transition-all">
+          ⛶ Full Screen
+        </button>
+      </div>
+
+      {/* Canvas */}
+      <div className="flex justify-center bg-gray-800 rounded-lg p-2 md:p-4">
+        <canvas
+          ref={canvasRef}
+          onMouseDown={tool === 'fill' ? fillCanvas : startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={tool === 'fill' ? fillCanvas : startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+          onTouchCancel={stopDrawing}
+          className="border-4 border-gray-600 bg-white rounded-lg shadow-lg w-full max-w-full"
+          style={{
+            touchAction: 'none',
+            cursor: tool === 'text' ? 'text' : 'crosshair',
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left',
+          }}
+        />
+      </div>
+
+      {/* Text Input */}
+      {tool === 'text' && startPos && (
+        <div className="bg-gray-800 rounded-lg p-3 flex gap-2">
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            placeholder="Enter text..."
+            className="flex-1 px-3 py-2 rounded text-sm border-2 border-purple-400"
+            autoFocus
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') handleTextTool(e)
+            }}
+          />
+          <button onClick={handleTextTool} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold text-sm">
+            Add Text
+          </button>
+        </div>
+      )}
+
+      {/* Tools */}
+      <ToolPanel />
     </div>
   )
 }
