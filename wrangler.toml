@@ -1,0 +1,15 @@
+name = "aidensite"
+type = "javascript"
+account_id = ""
+workers_dev = true
+route = ""
+zone_id = ""
+compatibility_date = "2024-12-25"
+
+[build]
+command = "npm run build"
+cwd = "./"
+watch_paths = ["src/**/*.{js,jsx,ts,tsx}"]
+
+[build.upload]
+format = "service-worker"
