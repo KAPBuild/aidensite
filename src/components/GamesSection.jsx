@@ -3,6 +3,7 @@ import SoccerPenaltyShootout from '../games/SoccerPenaltyShootout'
 import BasketballGame from '../games/BasketballGame'
 import DinosaurRunner from '../games/DinosaurRunner'
 import MemoryGame from '../games/MemoryGame'
+import DemonHunter from '../games/DemonHunter'
 
 export default function GamesSection() {
   const [selectedGame, setSelectedGame] = useState(null)
@@ -14,6 +15,7 @@ export default function GamesSection() {
         {selectedGame === 'basketball' && <BasketballGame onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'dinosaur' && <DinosaurRunner onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'memory' && <MemoryGame onBack={() => setSelectedGame(null)} />}
+        {selectedGame === 'demonhunter' && <DemonHunter onBack={() => setSelectedGame(null)} />}
       </>
     )
   }
@@ -61,17 +63,25 @@ export default function GamesSection() {
             onClick={() => setSelectedGame('memory')}
             color="from-purple-400 to-pink-400"
           />
+          <GameCard
+            emoji="👹"
+            title="Demon Hunter"
+            description="Fight waves of demons and upgrade your weapons!"
+            onClick={() => setSelectedGame('demonhunter')}
+            color="from-red-600 to-purple-600"
+          />
         </div>
 
         {/* Leaderboards */}
         <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
           <h2 className="text-2xl font-bold text-blue-600 mb-6 text-center">📊 Your Scores</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <Leaderboard gameType="penalty" title="⚽ Penalty Shootout" />
             <Leaderboard gameType="basketball" title="🏀 Basketball 3-Point" />
             <Leaderboard gameType="dinosaur" title="🦖 Dinosaur Runner" />
             <Leaderboard gameType="memory" title="🃏 Memory Game" />
+            <Leaderboard gameType="demonhunter" title="👹 Demon Hunter" />
           </div>
         </div>
       </div>

@@ -4,11 +4,15 @@ export default function DoodleCanvas() {
   const canvasRef = useRef(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [color, setColor] = useState('#000000')
+  const [isRainbow, setIsRainbow] = useState(false)
+  const rainbowHue = useRef(0)
   const [brushSize, setBrushSize] = useState(5)
   const [tool, setTool] = useState('pen')
   const [history, setHistory] = useState([])
   const [textInput, setTextInput] = useState('')
   const [fontSize, setFontSize] = useState(16)
+  const [selectedEmoji, setSelectedEmoji] = useState('⭐')
+  const [emojiSize, setEmojiSize] = useState(32)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const contextRef = useRef(null)
   const [startPos, setStartPos] = useState(null)
@@ -88,6 +92,14 @@ export default function DoodleCanvas() {
       return
     }
 
+    if (tool === 'emoji') {
+      const context = contextRef.current
+      context.font = `${emojiSize}px Arial`
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      context.fillText(selectedEmoji, x, y)
+    }
+
     contextRef.current.beginPath()
     contextRef.current.moveTo(x, y)
     setStartPos({ x, y })
@@ -102,10 +114,27 @@ export default function DoodleCanvas() {
     const context = contextRef.current
 
     if (tool === 'pen') {
-      context.strokeStyle = color
-      context.lineWidth = brushSize
-      context.lineTo(x, y)
-      context.stroke()
+      if (isRainbow) {
+        // For rainbow, draw each segment separately so colors don't get overwritten
+        rainbowHue.current = (rainbowHue.current + 3) % 360
+        context.strokeStyle = `hsl(${rainbowHue.current}, 100%, 50%)`
+        context.lineWidth = brushSize
+        context.lineTo(x, y)
+        context.stroke()
+        // Start new path from current position for next segment
+        context.beginPath()
+        context.moveTo(x, y)
+      } else {
+        context.strokeStyle = color
+        context.lineWidth = brushSize
+        context.lineTo(x, y)
+        context.stroke()
+      }
+    } else if (tool === 'emoji') {
+      context.font = `${emojiSize}px Arial`
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      context.fillText(selectedEmoji, x, y)
     }
   }
 
@@ -258,6 +287,7 @@ export default function DoodleCanvas() {
           { id: 'circle', emoji: '●', label: 'Circle' },
           { id: 'text', emoji: '📝', label: 'Text' },
           { id: 'fill', emoji: '🪣', label: 'Fill' },
+          { id: 'emoji', emoji: '😀', label: 'Emoji' },
         ].map((t) => (
           <button
             key={t.id}
@@ -278,20 +308,28 @@ export default function DoodleCanvas() {
           <input
             type="color"
             value={color}
-            onChange={(e) => setColor(e.target.value)}
+            onChange={(e) => { setColor(e.target.value); setIsRainbow(false) }}
             className="w-8 h-8 cursor-pointer rounded border-2 border-gray-400"
           />
           {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFD700', '#FF69B4', '#00CED1', '#FF8C00'].map((c) => (
             <button
               key={c}
-              onClick={() => setColor(c)}
+              onClick={() => { setColor(c); setIsRainbow(false) }}
               className={`w-5 h-5 md:w-6 md:h-6 rounded border-2 transition-all ${
-                color === c ? 'border-black scale-110 shadow' : 'border-gray-400 hover:border-gray-600'
+                color === c && !isRainbow ? 'border-black scale-110 shadow' : 'border-gray-400 hover:border-gray-600'
               }`}
               style={{ backgroundColor: c }}
               title={c}
             />
           ))}
+          <button
+            onClick={() => setIsRainbow(true)}
+            className={`w-5 h-5 md:w-6 md:h-6 rounded border-2 transition-all ${
+              isRainbow ? 'border-black scale-110 shadow' : 'border-gray-400 hover:border-gray-600'
+            }`}
+            style={{ background: 'linear-gradient(to right, red, orange, yellow, green, blue, purple)' }}
+            title="Rainbow"
+          />
         </div>
 
         <div className="flex gap-2 items-center">
@@ -319,6 +357,34 @@ export default function DoodleCanvas() {
               className="w-16 md:w-24 h-2 bg-gray-400 rounded-lg"
             />
             <span className="text-gray-700 font-bold text-xs md:text-sm w-6">{fontSize}</span>
+          </div>
+        )}
+
+        {tool === 'emoji' && (
+          <div className="flex gap-2 items-center flex-wrap">
+            <label className="text-gray-700 font-bold text-xs md:text-sm">Size:</label>
+            <input
+              type="range"
+              min="16"
+              max="80"
+              value={emojiSize}
+              onChange={(e) => setEmojiSize(Number(e.target.value))}
+              className="w-16 md:w-24 h-2 bg-gray-400 rounded-lg"
+            />
+            <span className="text-gray-700 font-bold text-xs md:text-sm w-6">{emojiSize}</span>
+            <div className="flex gap-1 flex-wrap">
+              {['⭐', '❤️', '😀', '😎', '🔥', '⚽', '🏀', '🎨', '🌈', '🦄', '🐶', '🐱', '🦋', '🌸', '🎮', '🚀', '💎', '👑', '🎵', '✨', '💩', '🗿'].map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => setSelectedEmoji(emoji)}
+                  className={`w-7 h-7 md:w-8 md:h-8 rounded text-lg md:text-xl transition-all ${
+                    selectedEmoji === emoji ? 'bg-purple-400 scale-110 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -369,7 +435,7 @@ export default function DoodleCanvas() {
             className="block bg-white rounded-lg shadow-lg border-4 border-gray-600"
             style={{
               touchAction: 'none',
-              cursor: tool === 'text' ? 'text' : tool === 'fill' ? 'pointer' : 'crosshair',
+              cursor: tool === 'text' ? 'text' : tool === 'fill' || tool === 'emoji' ? 'pointer' : 'crosshair',
               display: 'block',
             }}
           />
@@ -432,7 +498,7 @@ export default function DoodleCanvas() {
           className="bg-white rounded-lg shadow-md border-4 border-gray-400 block"
           style={{
             touchAction: 'none',
-            cursor: tool === 'text' ? 'text' : tool === 'fill' ? 'pointer' : 'crosshair',
+            cursor: tool === 'text' ? 'text' : tool === 'fill' || tool === 'emoji' ? 'pointer' : 'crosshair',
             display: 'block',
           }}
         />

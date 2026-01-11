@@ -25,38 +25,31 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-300 via-blue-300 to-purple-400 p-4">
-      {/* Christmas Greeting */}
+      {/* Welcome Greeting */}
       {showGreeting && (
         <div className="fixed inset-0 flex items-center justify-center z-40 bg-black/30 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-8 md:p-12 text-center max-w-2xl mx-auto shadow-2xl animate-pulse border-4 border-yellow-300 relative">
+          <div className="bg-white rounded-3xl p-8 md:p-12 text-center max-w-md mx-auto shadow-2xl relative">
             {/* Close Button */}
             <button
               onClick={handleCloseGreeting}
-              className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white w-10 h-10 rounded-full font-bold text-xl transition-all hover:scale-110 flex items-center justify-center"
+              className="absolute top-4 right-4 bg-gray-400 hover:bg-gray-500 text-white w-8 h-8 rounded-full font-bold text-lg transition-all hover:scale-110 flex items-center justify-center"
               title="Close"
             >
               ✕
             </button>
 
-            <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-green-500 mb-4">
-              🎄 Merry Christmas Bro! 🎄
-            </h1>
-            <p className="text-2xl md:text-3xl font-bold text-purple-600 mb-4">
-              - Uncle Nick 🎅
-            </p>
-            <p className="text-lg text-blue-600 font-semibold">
-              Welcome to your awesome new lab! 🧪
-            </p>
-            <div className="mt-8 text-4xl animate-bounce">
-              ⚽ 🎨 🔴 🏎️ ♟️ 🎮
+            <div className="text-8xl mb-6 animate-bounce">
+              ⚽
             </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-6">
+              Hello, welcome to my site
+            </h1>
 
-            {/* Dismiss Button */}
             <button
               onClick={handleCloseGreeting}
-              className="mt-8 bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-xl transition-all hover:scale-105"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-6 py-3 rounded-xl transition-all hover:scale-105"
             >
-              Got it! 👍
+              Continue
             </button>
           </div>
         </div>
