@@ -714,31 +714,33 @@ export default function DemonHunter({ onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={onBack}
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold"
-          >
-            Back
-          </button>
-          <h1 className="text-3xl md:text-4xl font-black text-red-500 drop-shadow-lg">
-            Demon Hunter
-          </h1>
-          <div className="text-yellow-400 font-bold">
-            High Score: {highScore}
+    <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900`}>
+      <div className={`${gameState === 'playing' ? 'h-full' : 'max-w-4xl'} mx-auto`}>
+        {/* Header - Hide on mobile fullscreen */}
+        {gameState !== 'playing' && (
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onClick={onBack}
+              className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold"
+            >
+              Back
+            </button>
+            <h1 className="text-3xl md:text-4xl font-black text-red-500 drop-shadow-lg">
+              Demon Hunter
+            </h1>
+            <div className="text-yellow-400 font-bold">
+              High Score: {highScore}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Game Canvas */}
-        <div className="relative">
+        <div className={`relative ${gameState === 'playing' ? 'w-full h-full' : ''}`}>
           <canvas
             ref={canvasRef}
             width={800}
             height={500}
-            className="w-full bg-gray-900 rounded-xl border-4 border-red-700 shadow-2xl"
+            className={`${gameState === 'playing' ? 'w-full h-full object-cover' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
           />
 
           {/* Shop Button during gameplay - Desktop only */}
@@ -748,6 +750,16 @@ export default function DemonHunter({ onBack }) {
               className="hidden md:flex absolute bottom-4 left-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all hover:scale-105 items-center gap-2"
             >
               🛒 SHOP ({coins})
+            </button>
+          )}
+
+          {/* Exit fullscreen button - Mobile only */}
+          {gameState === 'playing' && (
+            <button
+              onClick={() => setGameState('paused')}
+              className="md:hidden absolute top-4 left-4 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-bold text-sm shadow-lg"
+            >
+              ✕ ESC
             </button>
           )}
 
