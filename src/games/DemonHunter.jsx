@@ -20,7 +20,7 @@ export default function DemonHunter({ onBack }) {
   })
 
   const gameRef = useRef({
-    player: { x: 400, y: 300, size: 30, speed: 5, facing: 'right' },
+    player: { x: 400, y: 300, size: 30, speed: 2, facing: 'right' },
     demons: [],
     attacks: [],
     particles: [],
@@ -191,9 +191,9 @@ export default function DemonHunter({ onBack }) {
         game.player.facing = 'right'
       }
 
-      // Keep player in bounds
-      game.player.x = Math.max(20, Math.min(canvas.width - 20, game.player.x))
-      game.player.y = Math.max(20, Math.min(canvas.height - 20, game.player.y))
+      // Keep player in bounds (with padding)
+      game.player.x = Math.max(35, Math.min(canvas.width - 35, game.player.x))
+      game.player.y = Math.max(35, Math.min(canvas.height - 35, game.player.y))
 
       // Spawn demons - only spawn if wave isn't complete
       game.spawnTimer += deltaTime
@@ -716,7 +716,7 @@ export default function DemonHunter({ onBack }) {
   return (
     <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0 overflow-hidden' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 user-select-none`}
       style={gameState === 'playing' ? { touchAction: 'none', overscrollBehavior: 'none' } : {}}>
-      <div className={`${gameState === 'playing' ? 'h-full w-full flex' : 'max-w-4xl'} mx-auto`}>
+      <div className={`${gameState === 'playing' ? 'h-full w-full flex items-center justify-center gap-4' : 'max-w-4xl'} mx-auto`}>
         {/* Header - Hide on mobile fullscreen */}
         {gameState !== 'playing' && (
           <div className="flex justify-between items-center mb-4">
@@ -735,13 +735,23 @@ export default function DemonHunter({ onBack }) {
           </div>
         )}
 
-        {/* Game Canvas - Center when playing */}
-        <div className={`relative ${gameState === 'playing' ? 'flex-1 h-full md:flex md:items-center md:justify-center' : ''}`}>
+        {/* Game Canvas - Center with border */}
+        <div className={`relative ${gameState === 'playing' ? 'md:flex md:items-center md:justify-center' : ''}`}>
+          <div className={`${gameState === 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl bg-gray-900 md:block hidden' : ''}`}>
+            <canvas
+              ref={canvasRef}
+              width={800}
+              height={500}
+              className={`${gameState === 'playing' ? 'w-auto h-auto' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''} block`}
+              style={gameState === 'playing' ? { touchAction: 'none' } : {}}
+            />
+          </div>
+          {/* Mobile canvas - full screen */}
           <canvas
             ref={canvasRef}
             width={800}
             height={500}
-            className={`${gameState === 'playing' ? 'w-full h-full md:h-auto md:w-auto md:max-h-full md:max-w-full object-cover' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
+            className={`${gameState === 'playing' ? 'md:hidden absolute inset-0' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
             style={gameState === 'playing' ? { touchAction: 'none' } : {}}
           />
 
@@ -945,11 +955,14 @@ export default function DemonHunter({ onBack }) {
         {/* Mobile Controls - Handheld Console Style */}
         {gameState === 'playing' && (
           <>
-            {/* Left Joystick - Fixed on left side */}
+            {/* Left Joystick - On left side outside game */}
             <div
-              className="md:hidden fixed left-2 top-1/2 -translate-y-1/2 z-20 w-32 h-32 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
-              style={{ touchAction: 'none' }}
-              onTouchStart={(e) => {
+              className="md:hidden flex flex-col items-center justify-center w-40 h-full"
+            >
+              <div
+                className="relative w-36 h-36 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
+                style={{ touchAction: 'none' }}
+                onTouchStart={(e) => {
                 e.preventDefault()
                 const touch = e.touches[0]
                 const rect = e.currentTarget.getBoundingClientRect()
@@ -996,15 +1009,15 @@ export default function DemonHunter({ onBack }) {
               <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-lg">▼</div>
               <div className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-600 text-lg">◀</div>
               <div className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 text-lg">▶</div>
+              </div>
             </div>
 
-            {/* Right Action Buttons - Fixed on right side */}
-            <div className="md:hidden fixed right-2 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4">
+            {/* Right Action Buttons - On right side outside game */}
+            <div className="md:hidden flex flex-col items-center justify-center gap-4 w-40 h-full">
               {/* Shop Button */}
               <button
                 onClick={() => setGameState('shop')}
                 className="w-20 h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-3xl shadow-2xl active:scale-90 transition-transform border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500"
-                style={{ touchAction: 'none' }}
               >
                 🛒
               </button>
@@ -1015,8 +1028,8 @@ export default function DemonHunter({ onBack }) {
                   e.preventDefault()
                   attack()
                 }}
+                onClick={attack}
                 className="w-24 h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-2xl text-white shadow-2xl active:scale-90 transition-transform border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600"
-                style={{ touchAction: 'none' }}
               >
                 ⚔️
               </button>
