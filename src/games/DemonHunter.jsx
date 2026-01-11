@@ -716,7 +716,7 @@ export default function DemonHunter({ onBack }) {
   return (
     <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0 overflow-hidden' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 user-select-none`}
       style={gameState === 'playing' ? { touchAction: 'none', overscrollBehavior: 'none' } : {}}>
-      <div className={`${gameState === 'playing' ? 'h-full w-full flex items-center justify-center gap-4' : 'max-w-4xl'} mx-auto`}>
+      <div className={`${gameState === 'playing' ? 'h-full w-full flex items-center justify-center gap-2 md:gap-4 px-2' : 'max-w-4xl'} mx-auto`}>
         {/* Header - Hide on mobile fullscreen */}
         {gameState !== 'playing' && (
           <div className="flex justify-between items-center mb-4">
@@ -736,7 +736,7 @@ export default function DemonHunter({ onBack }) {
         )}
 
         {/* Game Canvas - Center with border */}
-        <div className={`relative ${gameState === 'playing' ? 'md:flex md:items-center md:justify-center' : ''}`}>
+        <div className={`relative ${gameState === 'playing' ? 'flex-1 flex items-center justify-center' : ''}`}>
           <div className={`${gameState === 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl bg-gray-900 md:block hidden' : ''}`}>
             <canvas
               ref={canvasRef}
@@ -746,13 +746,13 @@ export default function DemonHunter({ onBack }) {
               style={gameState === 'playing' ? { touchAction: 'none' } : {}}
             />
           </div>
-          {/* Mobile canvas - full screen */}
+          {/* Mobile canvas - respects flex layout */}
           <canvas
             ref={canvasRef}
             width={800}
             height={500}
-            className={`${gameState === 'playing' ? 'md:hidden absolute inset-0' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
-            style={gameState === 'playing' ? { touchAction: 'none' } : {}}
+            className={`${gameState === 'playing' ? 'md:hidden rounded-xl border-4 border-red-700 shadow-2xl w-full h-auto' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
+            style={gameState === 'playing' ? { touchAction: 'none', maxWidth: '100%', maxHeight: '100vh' } : {}}
           />
 
           {/* Shop Button during gameplay - Desktop only */}
@@ -957,7 +957,8 @@ export default function DemonHunter({ onBack }) {
           <>
             {/* Left Joystick - On left side outside game */}
             <div
-              className="md:hidden flex flex-col items-center justify-center w-40 h-full"
+              className="flex flex-col items-center justify-center h-full flex-shrink-0"
+              style={{ width: '140px' }}
             >
               <div
                 className="relative w-36 h-36 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
@@ -1013,7 +1014,7 @@ export default function DemonHunter({ onBack }) {
             </div>
 
             {/* Right Action Buttons - On right side outside game */}
-            <div className="md:hidden flex flex-col items-center justify-center gap-4 w-40 h-full">
+            <div className="flex flex-col items-center justify-center gap-4 h-full flex-shrink-0" style={{ width: '140px' }}>
               {/* Shop Button */}
               <button
                 onClick={() => setGameState('shop')}
