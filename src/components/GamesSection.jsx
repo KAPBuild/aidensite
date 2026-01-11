@@ -36,6 +36,13 @@ export default function GamesSection() {
         {/* Games Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <GameCard
+            emoji="👹"
+            title="Demon Hunter"
+            description="Fight waves of demons and upgrade your weapons!"
+            onClick={() => setSelectedGame('demonhunter')}
+            color="from-red-600 to-purple-600"
+          />
+          <GameCard
             emoji="⚽"
             title="Penalty Shootout"
             description="Test your shooting skills against hilarious AI goalkeepers!"
@@ -62,13 +69,6 @@ export default function GamesSection() {
             description="Match pairs of Pokemon cards. Can you remember them all?"
             onClick={() => setSelectedGame('memory')}
             color="from-purple-400 to-pink-400"
-          />
-          <GameCard
-            emoji="👹"
-            title="Demon Hunter"
-            description="Fight waves of demons and upgrade your weapons!"
-            onClick={() => setSelectedGame('demonhunter')}
-            color="from-red-600 to-purple-600"
           />
         </div>
 

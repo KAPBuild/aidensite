@@ -741,11 +741,11 @@ export default function DemonHunter({ onBack }) {
             className="w-full bg-gray-900 rounded-xl border-4 border-red-700 shadow-2xl"
           />
 
-          {/* Shop Button during gameplay */}
+          {/* Shop Button during gameplay - Desktop only */}
           {gameState === 'playing' && (
             <button
               onClick={() => setGameState('shop')}
-              className="absolute bottom-4 left-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all hover:scale-105 flex items-center gap-2"
+              className="hidden md:flex absolute bottom-4 left-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all hover:scale-105 items-center gap-2"
             >
               🛒 SHOP ({coins})
             </button>
@@ -928,47 +928,86 @@ export default function DemonHunter({ onBack }) {
           )}
         </div>
 
-        {/* Mobile Controls */}
-        <div className="mt-4 md:hidden">
-          <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto mb-4">
-            <div></div>
-            <button
-              onTouchStart={() => gameRef.current.keys['w'] = true}
-              onTouchEnd={() => gameRef.current.keys['w'] = false}
-              className="bg-gray-700 text-white p-4 rounded-xl font-bold text-2xl"
-            >
-              W
-            </button>
-            <div></div>
-            <button
-              onTouchStart={() => gameRef.current.keys['a'] = true}
-              onTouchEnd={() => gameRef.current.keys['a'] = false}
-              className="bg-gray-700 text-white p-4 rounded-xl font-bold text-2xl"
-            >
-              A
-            </button>
-            <button
-              onTouchStart={() => gameRef.current.keys['s'] = true}
-              onTouchEnd={() => gameRef.current.keys['s'] = false}
-              className="bg-gray-700 text-white p-4 rounded-xl font-bold text-2xl"
-            >
-              S
-            </button>
-            <button
-              onTouchStart={() => gameRef.current.keys['d'] = true}
-              onTouchEnd={() => gameRef.current.keys['d'] = false}
-              className="bg-gray-700 text-white p-4 rounded-xl font-bold text-2xl"
-            >
-              D
-            </button>
+        {/* Mobile Controls - Joystick Style */}
+        {gameState === 'playing' && (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="flex justify-between items-end max-w-lg mx-auto">
+              {/* Virtual Joystick */}
+              <div
+                className="relative w-32 h-32 bg-gray-800/80 rounded-full border-4 border-gray-600"
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  const touch = e.touches[0]
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const centerX = rect.left + rect.width / 2
+                  const centerY = rect.top + rect.height / 2
+                  const dx = touch.clientX - centerX
+                  const dy = touch.clientY - centerY
+
+                  gameRef.current.keys['w'] = dy < -20
+                  gameRef.current.keys['s'] = dy > 20
+                  gameRef.current.keys['a'] = dx < -20
+                  gameRef.current.keys['d'] = dx > 20
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault()
+                  const touch = e.touches[0]
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const centerX = rect.left + rect.width / 2
+                  const centerY = rect.top + rect.height / 2
+                  const dx = touch.clientX - centerX
+                  const dy = touch.clientY - centerY
+
+                  gameRef.current.keys['w'] = dy < -20
+                  gameRef.current.keys['s'] = dy > 20
+                  gameRef.current.keys['a'] = dx < -20
+                  gameRef.current.keys['d'] = dx > 20
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault()
+                  gameRef.current.keys['w'] = false
+                  gameRef.current.keys['s'] = false
+                  gameRef.current.keys['a'] = false
+                  gameRef.current.keys['d'] = false
+                }}
+              >
+                {/* Joystick center */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-500 rounded-full border-2 border-gray-400 shadow-lg">
+                  <div className="absolute inset-2 bg-gray-400 rounded-full"></div>
+                </div>
+                {/* Direction arrows */}
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 text-gray-500 text-xl">▲</div>
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-gray-500 text-xl">▼</div>
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xl">◀</div>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xl">▶</div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3">
+                {/* Shop Button */}
+                <button
+                  onClick={() => setGameState('shop')}
+                  className="w-16 h-16 bg-yellow-500 rounded-full font-bold text-2xl shadow-lg active:scale-95 transition-transform border-4 border-yellow-300"
+                >
+                  🛒
+                </button>
+
+                {/* Attack Button */}
+                <button
+                  onTouchStart={(e) => {
+                    e.preventDefault()
+                    attack()
+                  }}
+                  className="w-24 h-24 bg-red-600 rounded-full font-bold text-lg text-white shadow-lg active:scale-95 transition-transform border-4 border-red-400 flex items-center justify-center"
+                >
+                  ⚔️
+                  <br/>
+                  ATK
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={attack}
-            className="w-full bg-red-600 text-white p-4 rounded-xl font-bold text-xl"
-          >
-            ATTACK
-          </button>
-        </div>
+        )}
       </div>
     </div>
   )
