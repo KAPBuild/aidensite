@@ -714,8 +714,9 @@ export default function DemonHunter({ onBack }) {
   }
 
   return (
-    <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900`}>
-      <div className={`${gameState === 'playing' ? 'h-full' : 'max-w-4xl'} mx-auto`}>
+    <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0 overflow-hidden' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 user-select-none`}
+      style={gameState === 'playing' ? { touchAction: 'none', overscrollBehavior: 'none' } : {}}>
+      <div className={`${gameState === 'playing' ? 'h-full w-full flex' : 'max-w-4xl'} mx-auto`}>
         {/* Header - Hide on mobile fullscreen */}
         {gameState !== 'playing' && (
           <div className="flex justify-between items-center mb-4">
@@ -734,13 +735,14 @@ export default function DemonHunter({ onBack }) {
           </div>
         )}
 
-        {/* Game Canvas */}
-        <div className={`relative ${gameState === 'playing' ? 'w-full h-full' : ''}`}>
+        {/* Game Canvas - Center when playing */}
+        <div className={`relative ${gameState === 'playing' ? 'flex-1 h-full md:flex md:items-center md:justify-center' : ''}`}>
           <canvas
             ref={canvasRef}
             width={800}
             height={500}
-            className={`${gameState === 'playing' ? 'w-full h-full object-cover' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
+            className={`${gameState === 'playing' ? 'w-full h-full md:h-auto md:w-auto md:max-h-full md:max-w-full object-cover' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
+            style={gameState === 'playing' ? { touchAction: 'none' } : {}}
           />
 
           {/* Shop Button during gameplay - Desktop only */}
@@ -940,85 +942,86 @@ export default function DemonHunter({ onBack }) {
           )}
         </div>
 
-        {/* Mobile Controls - Joystick Style */}
+        {/* Mobile Controls - Handheld Console Style */}
         {gameState === 'playing' && (
-          <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="flex justify-between items-end max-w-lg mx-auto">
-              {/* Virtual Joystick */}
-              <div
-                className="relative w-32 h-32 bg-gray-800/80 rounded-full border-4 border-gray-600"
+          <>
+            {/* Left Joystick - Fixed on left side */}
+            <div
+              className="md:hidden fixed left-2 top-1/2 -translate-y-1/2 z-20 w-32 h-32 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
+              style={{ touchAction: 'none' }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                const touch = e.touches[0]
+                const rect = e.currentTarget.getBoundingClientRect()
+                const centerX = rect.left + rect.width / 2
+                const centerY = rect.top + rect.height / 2
+                const dx = touch.clientX - centerX
+                const dy = touch.clientY - centerY
+                const distance = Math.sqrt(dx * dx + dy * dy)
+
+                gameRef.current.keys['w'] = distance > 15 && dy < -10
+                gameRef.current.keys['s'] = distance > 15 && dy > 10
+                gameRef.current.keys['a'] = distance > 15 && dx < -10
+                gameRef.current.keys['d'] = distance > 15 && dx > 10
+              }}
+              onTouchMove={(e) => {
+                e.preventDefault()
+                const touch = e.touches[0]
+                const rect = e.currentTarget.getBoundingClientRect()
+                const centerX = rect.left + rect.width / 2
+                const centerY = rect.top + rect.height / 2
+                const dx = touch.clientX - centerX
+                const dy = touch.clientY - centerY
+                const distance = Math.sqrt(dx * dx + dy * dy)
+
+                gameRef.current.keys['w'] = distance > 15 && dy < -10
+                gameRef.current.keys['s'] = distance > 15 && dy > 10
+                gameRef.current.keys['a'] = distance > 15 && dx < -10
+                gameRef.current.keys['d'] = distance > 15 && dx > 10
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault()
+                gameRef.current.keys['w'] = false
+                gameRef.current.keys['s'] = false
+                gameRef.current.keys['a'] = false
+                gameRef.current.keys['d'] = false
+              }}
+            >
+              {/* Joystick center button */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full border-2 border-gray-500 shadow-lg">
+                <div className="absolute inset-1 bg-gradient-to-b from-gray-500 to-gray-700 rounded-full"></div>
+              </div>
+              {/* Direction indicators */}
+              <div className="absolute top-1 left-1/2 -translate-x-1/2 text-gray-600 text-lg">▲</div>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-lg">▼</div>
+              <div className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-600 text-lg">◀</div>
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 text-lg">▶</div>
+            </div>
+
+            {/* Right Action Buttons - Fixed on right side */}
+            <div className="md:hidden fixed right-2 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-4">
+              {/* Shop Button */}
+              <button
+                onClick={() => setGameState('shop')}
+                className="w-20 h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-3xl shadow-2xl active:scale-90 transition-transform border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500"
+                style={{ touchAction: 'none' }}
+              >
+                🛒
+              </button>
+
+              {/* Attack Button */}
+              <button
                 onTouchStart={(e) => {
                   e.preventDefault()
-                  const touch = e.touches[0]
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const centerX = rect.left + rect.width / 2
-                  const centerY = rect.top + rect.height / 2
-                  const dx = touch.clientX - centerX
-                  const dy = touch.clientY - centerY
-
-                  gameRef.current.keys['w'] = dy < -20
-                  gameRef.current.keys['s'] = dy > 20
-                  gameRef.current.keys['a'] = dx < -20
-                  gameRef.current.keys['d'] = dx > 20
+                  attack()
                 }}
-                onTouchMove={(e) => {
-                  e.preventDefault()
-                  const touch = e.touches[0]
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const centerX = rect.left + rect.width / 2
-                  const centerY = rect.top + rect.height / 2
-                  const dx = touch.clientX - centerX
-                  const dy = touch.clientY - centerY
-
-                  gameRef.current.keys['w'] = dy < -20
-                  gameRef.current.keys['s'] = dy > 20
-                  gameRef.current.keys['a'] = dx < -20
-                  gameRef.current.keys['d'] = dx > 20
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault()
-                  gameRef.current.keys['w'] = false
-                  gameRef.current.keys['s'] = false
-                  gameRef.current.keys['a'] = false
-                  gameRef.current.keys['d'] = false
-                }}
+                className="w-24 h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-2xl text-white shadow-2xl active:scale-90 transition-transform border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600"
+                style={{ touchAction: 'none' }}
               >
-                {/* Joystick center */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-500 rounded-full border-2 border-gray-400 shadow-lg">
-                  <div className="absolute inset-2 bg-gray-400 rounded-full"></div>
-                </div>
-                {/* Direction arrows */}
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 text-gray-500 text-xl">▲</div>
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-gray-500 text-xl">▼</div>
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xl">◀</div>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xl">▶</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-3">
-                {/* Shop Button */}
-                <button
-                  onClick={() => setGameState('shop')}
-                  className="w-16 h-16 bg-yellow-500 rounded-full font-bold text-2xl shadow-lg active:scale-95 transition-transform border-4 border-yellow-300"
-                >
-                  🛒
-                </button>
-
-                {/* Attack Button */}
-                <button
-                  onTouchStart={(e) => {
-                    e.preventDefault()
-                    attack()
-                  }}
-                  className="w-24 h-24 bg-red-600 rounded-full font-bold text-lg text-white shadow-lg active:scale-95 transition-transform border-4 border-red-400 flex items-center justify-center"
-                >
-                  ⚔️
-                  <br/>
-                  ATK
-                </button>
-              </div>
+                ⚔️
+              </button>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
