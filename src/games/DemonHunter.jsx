@@ -716,7 +716,7 @@ export default function DemonHunter({ onBack }) {
   return (
     <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0 overflow-hidden' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 user-select-none`}
       style={gameState === 'playing' ? { touchAction: 'none', overscrollBehavior: 'none' } : {}}>
-      <div className={`${gameState === 'playing' ? 'h-full w-full flex items-center justify-center gap-2 md:gap-4 px-2' : 'max-w-4xl'} mx-auto`}>
+      <div className={`${gameState === 'playing' ? 'h-full w-full flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 px-2 py-2' : 'max-w-4xl'} mx-auto`}>
         {/* Header - Hide on mobile fullscreen */}
         {gameState !== 'playing' && (
           <div className="flex justify-between items-center mb-4">
@@ -735,8 +735,8 @@ export default function DemonHunter({ onBack }) {
           </div>
         )}
 
-        {/* Game Canvas - Center with border */}
-        <div className={`relative ${gameState === 'playing' ? 'flex-1 flex items-center justify-center' : ''}`}>
+        {/* Game Canvas - Top on mobile, center on landscape */}
+        <div className={`relative ${gameState === 'playing' ? 'flex-1 flex items-center justify-center order-1 md:order-2 w-full md:w-auto h-1/2 md:h-full' : ''}`}>
           <div className={`${gameState === 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl bg-gray-900 md:block hidden' : ''}`}>
             <canvas
               ref={canvasRef}
@@ -955,9 +955,9 @@ export default function DemonHunter({ onBack }) {
         {/* Mobile Controls - Handheld Console Style */}
         {gameState === 'playing' && (
           <>
-            {/* Left Joystick - On left side outside game */}
+            {/* Joystick - Right on landscape, middle on mobile */}
             <div
-              className="flex flex-col items-center justify-center h-full flex-shrink-0"
+              className="flex flex-col items-center justify-center flex-shrink-0 order-3 md:order-3 h-24 md:h-full"
               style={{ width: '140px' }}
             >
               <div
@@ -1013,8 +1013,8 @@ export default function DemonHunter({ onBack }) {
               </div>
             </div>
 
-            {/* Right Action Buttons - On right side outside game */}
-            <div className="flex flex-col items-center justify-center gap-4 h-full flex-shrink-0" style={{ width: '140px' }}>
+            {/* Action Buttons - Left on landscape, top on mobile */}
+            <div className="flex flex-col items-center justify-center gap-4 flex-shrink-0 order-2 md:order-1 h-24 md:h-full" style={{ width: '140px' }}>
               {/* Shop Button */}
               <button
                 onClick={() => setGameState('shop')}
