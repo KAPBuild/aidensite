@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
 import SoccerPenaltyShootout from '../games/SoccerPenaltyShootout'
 import BasketballGame from '../games/BasketballGame'
-import DinosaurRunner from '../games/DinosaurRunner'
-import MemoryGame from '../games/MemoryGame'
 import DemonHunter from '../games/DemonHunter'
 
 export default function GamesSection() {
@@ -13,8 +11,6 @@ export default function GamesSection() {
       <>
         {selectedGame === 'penalty' && <SoccerPenaltyShootout onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'basketball' && <BasketballGame onBack={() => setSelectedGame(null)} />}
-        {selectedGame === 'dinosaur' && <DinosaurRunner onBack={() => setSelectedGame(null)} />}
-        {selectedGame === 'memory' && <MemoryGame onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'demonhunter' && <DemonHunter onBack={() => setSelectedGame(null)} />}
       </>
     )
@@ -56,31 +52,15 @@ export default function GamesSection() {
             onClick={() => setSelectedGame('basketball')}
             color="from-orange-400 to-yellow-400"
           />
-          <GameCard
-            emoji="🦖"
-            title="Dinosaur Runner"
-            description="Help the dinosaur avoid obstacles! Tap to jump!"
-            onClick={() => setSelectedGame('dinosaur')}
-            color="from-green-400 to-teal-400"
-          />
-          <GameCard
-            emoji="🃏"
-            title="Memory Game"
-            description="Match pairs of Pokemon cards. Can you remember them all?"
-            onClick={() => setSelectedGame('memory')}
-            color="from-purple-400 to-pink-400"
-          />
         </div>
 
         {/* Leaderboards */}
         <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
           <h2 className="text-2xl font-bold text-blue-600 mb-6 text-center">📊 Your Scores</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Leaderboard gameType="penalty" title="⚽ Penalty Shootout" />
             <Leaderboard gameType="basketball" title="🏀 Basketball 3-Point" />
-            <Leaderboard gameType="dinosaur" title="🦖 Dinosaur Runner" />
-            <Leaderboard gameType="memory" title="🃏 Memory Game" />
             <Leaderboard gameType="demonhunter" title="👹 Demon Hunter" />
           </div>
         </div>
