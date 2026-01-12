@@ -20,7 +20,7 @@ export default function DemonHunter({ onBack }) {
   })
 
   const gameRef = useRef({
-    player: { x: 400, y: 300, size: 30, speed: 2, facing: 'right' },
+    player: { x: 400, y: 300, size: 30, speed: 1, facing: 'right' },
     demons: [],
     attacks: [],
     particles: [],
@@ -716,7 +716,7 @@ export default function DemonHunter({ onBack }) {
   return (
     <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0 overflow-hidden' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 user-select-none`}
       style={gameState === 'playing' ? { touchAction: 'none', overscrollBehavior: 'none' } : {}}>
-      <div className={`${gameState === 'playing' ? 'h-full w-full flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 px-2 py-2' : 'max-w-4xl'} mx-auto`}>
+      <div className={`${gameState === 'playing' ? 'h-full w-full flex flex-col md:flex-row items-stretch justify-between gap-2 md:gap-4 px-2 py-2' : 'max-w-4xl'} mx-auto`}>
         {/* Header - Hide on mobile fullscreen */}
         {gameState !== 'playing' && (
           <div className="flex justify-between items-center mb-4">
@@ -736,23 +736,13 @@ export default function DemonHunter({ onBack }) {
         )}
 
         {/* Game Canvas - Top on mobile, center on landscape */}
-        <div className={`relative ${gameState === 'playing' ? 'flex-1 flex items-center justify-center order-1 md:order-2 w-full md:w-auto h-1/2 md:h-full' : ''}`}>
-          <div className={`${gameState === 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl bg-gray-900 md:block hidden' : ''}`}>
-            <canvas
-              ref={canvasRef}
-              width={800}
-              height={500}
-              className={`${gameState === 'playing' ? 'w-auto h-auto' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''} block`}
-              style={gameState === 'playing' ? { touchAction: 'none' } : {}}
-            />
-          </div>
-          {/* Mobile canvas - respects flex layout */}
+        <div className={`relative ${gameState === 'playing' ? 'flex-1 flex items-center justify-center md:order-2 w-full md:w-auto' : ''}`}>
           <canvas
             ref={canvasRef}
             width={800}
             height={500}
-            className={`${gameState === 'playing' ? 'md:hidden rounded-xl border-4 border-red-700 shadow-2xl w-full h-auto' : 'w-full'} bg-gray-900 ${gameState !== 'playing' ? 'rounded-xl border-4 border-red-700 shadow-2xl' : ''}`}
-            style={gameState === 'playing' ? { touchAction: 'none', maxWidth: '100%', maxHeight: '100vh' } : {}}
+            className={`rounded-xl border-4 border-red-700 shadow-2xl bg-gray-900 ${gameState === 'playing' ? 'w-full h-full object-contain' : 'w-full'}`}
+            style={gameState === 'playing' ? { touchAction: 'none', maxWidth: '100%', maxHeight: '100%' } : {}}
           />
 
           {/* Shop Button during gameplay - Desktop only */}
@@ -895,8 +885,8 @@ export default function DemonHunter({ onBack }) {
               </div>
 
               {/* Weapons Section */}
-              <h3 className="text-xl font-bold text-purple-400 mb-2">⚔️ WEAPONS</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 max-h-48 overflow-auto">
+              <h3 className="text-xl font-bold text-purple-400 mb-4">⚔️ WEAPONS</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 max-h-64 overflow-y-auto overflow-x-hidden pr-2">
                 {weapons.map((w, idx) => (
                   <button
                     key={idx}
@@ -952,73 +942,15 @@ export default function DemonHunter({ onBack }) {
           )}
         </div>
 
-        {/* Mobile Controls - Handheld Console Style */}
+        {/* Unified Controls - Works for both vertical and horizontal layouts */}
         {gameState === 'playing' && (
           <>
-            {/* Joystick - Right on landscape, middle on mobile */}
-            <div
-              className="flex flex-col items-center justify-center flex-shrink-0 order-3 md:order-3 h-24 md:h-full"
-              style={{ width: '140px' }}
-            >
-              <div
-                className="relative w-36 h-36 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
-                style={{ touchAction: 'none' }}
-                onTouchStart={(e) => {
-                e.preventDefault()
-                const touch = e.touches[0]
-                const rect = e.currentTarget.getBoundingClientRect()
-                const centerX = rect.left + rect.width / 2
-                const centerY = rect.top + rect.height / 2
-                const dx = touch.clientX - centerX
-                const dy = touch.clientY - centerY
-                const distance = Math.sqrt(dx * dx + dy * dy)
-
-                gameRef.current.keys['w'] = distance > 15 && dy < -10
-                gameRef.current.keys['s'] = distance > 15 && dy > 10
-                gameRef.current.keys['a'] = distance > 15 && dx < -10
-                gameRef.current.keys['d'] = distance > 15 && dx > 10
-              }}
-              onTouchMove={(e) => {
-                e.preventDefault()
-                const touch = e.touches[0]
-                const rect = e.currentTarget.getBoundingClientRect()
-                const centerX = rect.left + rect.width / 2
-                const centerY = rect.top + rect.height / 2
-                const dx = touch.clientX - centerX
-                const dy = touch.clientY - centerY
-                const distance = Math.sqrt(dx * dx + dy * dy)
-
-                gameRef.current.keys['w'] = distance > 15 && dy < -10
-                gameRef.current.keys['s'] = distance > 15 && dy > 10
-                gameRef.current.keys['a'] = distance > 15 && dx < -10
-                gameRef.current.keys['d'] = distance > 15 && dx > 10
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault()
-                gameRef.current.keys['w'] = false
-                gameRef.current.keys['s'] = false
-                gameRef.current.keys['a'] = false
-                gameRef.current.keys['d'] = false
-              }}
-            >
-              {/* Joystick center button */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full border-2 border-gray-500 shadow-lg">
-                <div className="absolute inset-1 bg-gradient-to-b from-gray-500 to-gray-700 rounded-full"></div>
-              </div>
-              {/* Direction indicators */}
-              <div className="absolute top-1 left-1/2 -translate-x-1/2 text-gray-600 text-lg">▲</div>
-              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-lg">▼</div>
-              <div className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-600 text-lg">◀</div>
-              <div className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 text-lg">▶</div>
-              </div>
-            </div>
-
-            {/* Action Buttons - Left on landscape, top on mobile */}
-            <div className="flex flex-col items-center justify-center gap-4 flex-shrink-0 order-2 md:order-1 h-24 md:h-full" style={{ width: '140px' }}>
+            {/* Attack Button - Left side on all layouts */}
+            <div className="flex flex-col items-center justify-center flex-shrink-0 md:order-1 gap-3" style={{ minWidth: '100px', height: 'fit-content' }}>
               {/* Shop Button */}
               <button
                 onClick={() => setGameState('shop')}
-                className="w-20 h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-3xl shadow-2xl active:scale-90 transition-transform border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500"
+                className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-2xl md:text-3xl shadow-2xl active:scale-90 transition-transform border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500 flex-shrink-0"
               >
                 🛒
               </button>
@@ -1030,10 +962,65 @@ export default function DemonHunter({ onBack }) {
                   attack()
                 }}
                 onClick={attack}
-                className="w-24 h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-2xl text-white shadow-2xl active:scale-90 transition-transform border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600"
+                className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-xl md:text-2xl text-white shadow-2xl active:scale-90 transition-transform border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600 flex-shrink-0"
               >
                 ⚔️
               </button>
+            </div>
+
+            {/* Joystick - Right side on all layouts */}
+            <div className="flex items-center justify-center flex-shrink-0 md:order-3" style={{ minWidth: '140px', height: 'fit-content' }}>
+              <div
+                className="relative w-28 h-28 md:w-36 md:h-36 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
+                style={{ touchAction: 'none' }}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  const touch = e.touches[0]
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const centerX = rect.left + rect.width / 2
+                  const centerY = rect.top + rect.height / 2
+                  const dx = touch.clientX - centerX
+                  const dy = touch.clientY - centerY
+                  const distance = Math.sqrt(dx * dx + dy * dy)
+
+                  gameRef.current.keys['w'] = distance > 15 && dy < -10
+                  gameRef.current.keys['s'] = distance > 15 && dy > 10
+                  gameRef.current.keys['a'] = distance > 15 && dx < -10
+                  gameRef.current.keys['d'] = distance > 15 && dx > 10
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault()
+                  const touch = e.touches[0]
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const centerX = rect.left + rect.width / 2
+                  const centerY = rect.top + rect.height / 2
+                  const dx = touch.clientX - centerX
+                  const dy = touch.clientY - centerY
+                  const distance = Math.sqrt(dx * dx + dy * dy)
+
+                  gameRef.current.keys['w'] = distance > 15 && dy < -10
+                  gameRef.current.keys['s'] = distance > 15 && dy > 10
+                  gameRef.current.keys['a'] = distance > 15 && dx < -10
+                  gameRef.current.keys['d'] = distance > 15 && dx > 10
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault()
+                  gameRef.current.keys['w'] = false
+                  gameRef.current.keys['s'] = false
+                  gameRef.current.keys['a'] = false
+                  gameRef.current.keys['d'] = false
+                }}
+              >
+                {/* Joystick center button */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 md:w-12 md:h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full border-2 border-gray-500 shadow-lg">
+                  <div className="absolute inset-1 bg-gradient-to-b from-gray-500 to-gray-700 rounded-full"></div>
+                </div>
+                {/* Direction indicators */}
+                <div className="absolute top-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs md:text-lg">▲</div>
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs md:text-lg">▼</div>
+                <div className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs md:text-lg">◀</div>
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs md:text-lg">▶</div>
+              </div>
             </div>
           </>
         )}
