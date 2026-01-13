@@ -714,9 +714,9 @@ export default function DemonHunter({ onBack }) {
   }
 
   return (
-    <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0 overflow-hidden' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 user-select-none`}
-      style={gameState === 'playing' ? { touchAction: 'none', overscrollBehavior: 'none' } : {}}>
-      <div className={`${gameState === 'playing' ? 'h-full w-full flex flex-col md:flex-row items-stretch justify-between gap-2 md:gap-4 px-2 py-2' : 'max-w-4xl'} mx-auto`}>
+    <div className={`${gameState === 'playing' ? 'fixed inset-0 p-0 overflow-auto' : 'min-h-screen p-4'} bg-gradient-to-br from-purple-900 via-gray-900 to-red-900 user-select-none`}
+      style={gameState === 'playing' ? { touchAction: 'none' } : {}}>
+      <div className={`${gameState === 'playing' ? 'w-full min-h-full flex flex-col lg:flex-row items-center lg:items-stretch justify-between gap-2 lg:gap-4 px-2 py-2' : 'max-w-4xl'} mx-auto`}>
         {/* Header - Hide on mobile fullscreen */}
         {gameState !== 'playing' && (
           <div className="flex justify-between items-center mb-4">
@@ -736,20 +736,20 @@ export default function DemonHunter({ onBack }) {
         )}
 
         {/* Game Canvas - Top on mobile, center on landscape */}
-        <div className={`relative ${gameState === 'playing' ? 'flex-1 flex items-center justify-center md:order-2 w-full md:w-auto' : ''}`}>
+        <div className={`relative ${gameState === 'playing' ? 'flex-1 flex items-center justify-center lg:order-2 w-full lg:w-auto' : ''}`}>
           <canvas
             ref={canvasRef}
             width={800}
             height={500}
-            className={`rounded-xl border-4 border-red-700 shadow-2xl bg-gray-900 ${gameState === 'playing' ? 'w-full h-full object-contain' : 'w-full'}`}
-            style={gameState === 'playing' ? { touchAction: 'none', maxWidth: '100%', maxHeight: '100%' } : {}}
+            className={`rounded-xl border-4 border-red-700 shadow-2xl bg-gray-900 ${gameState === 'playing' ? 'w-auto h-auto' : 'w-full'}`}
+            style={gameState === 'playing' ? { touchAction: 'none', maxWidth: '100%', maxHeight: 'calc(100vh - 40px)' } : {}}
           />
 
           {/* Shop Button during gameplay - Desktop only */}
           {gameState === 'playing' && (
             <button
               onClick={() => setGameState('shop')}
-              className="hidden md:flex absolute bottom-4 left-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all hover:scale-105 items-center gap-2"
+              className="hidden lg:flex absolute bottom-4 left-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all hover:scale-105 items-center gap-2"
             >
               🛒 SHOP ({coins})
             </button>
@@ -759,7 +759,7 @@ export default function DemonHunter({ onBack }) {
           {gameState === 'playing' && (
             <button
               onClick={() => setGameState('paused')}
-              className="md:hidden absolute top-4 left-4 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-bold text-sm shadow-lg"
+              className="lg:hidden absolute top-4 left-4 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-bold text-sm shadow-lg"
             >
               ✕ ESC
             </button>
@@ -946,11 +946,11 @@ export default function DemonHunter({ onBack }) {
         {gameState === 'playing' && (
           <>
             {/* Attack Button - Left side on all layouts */}
-            <div className="flex flex-col items-center justify-center flex-shrink-0 md:order-1 gap-3" style={{ minWidth: '100px', height: 'fit-content' }}>
+            <div className="flex flex-col items-center justify-center flex-shrink-0 lg:order-1 gap-3" style={{ minWidth: '100px', height: 'fit-content' }}>
               {/* Shop Button */}
               <button
                 onClick={() => setGameState('shop')}
-                className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-2xl md:text-3xl shadow-2xl active:scale-90 transition-transform border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500 flex-shrink-0"
+                className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-2xl lg:text-3xl shadow-2xl active:scale-90 transition-transform border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500 flex-shrink-0"
               >
                 🛒
               </button>
@@ -962,16 +962,16 @@ export default function DemonHunter({ onBack }) {
                   attack()
                 }}
                 onClick={attack}
-                className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-xl md:text-2xl text-white shadow-2xl active:scale-90 transition-transform border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600 flex-shrink-0"
+                className="w-20 h-20 lg:w-24 lg:h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-xl lg:text-2xl text-white shadow-2xl active:scale-90 transition-transform border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600 flex-shrink-0"
               >
                 ⚔️
               </button>
             </div>
 
             {/* Joystick - Right side on all layouts */}
-            <div className="flex items-center justify-center flex-shrink-0 md:order-3" style={{ minWidth: '140px', height: 'fit-content' }}>
+            <div className="flex items-center justify-center flex-shrink-0 lg:order-3" style={{ minWidth: '140px', height: 'fit-content' }}>
               <div
-                className="relative w-28 h-28 md:w-36 md:h-36 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
+                className="relative w-28 h-28 lg:w-36 lg:h-36 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
                 style={{ touchAction: 'none' }}
                 onTouchStart={(e) => {
                   e.preventDefault()
@@ -1012,14 +1012,14 @@ export default function DemonHunter({ onBack }) {
                 }}
               >
                 {/* Joystick center button */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 md:w-12 md:h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full border-2 border-gray-500 shadow-lg">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 lg:w-12 lg:h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full border-2 border-gray-500 shadow-lg">
                   <div className="absolute inset-1 bg-gradient-to-b from-gray-500 to-gray-700 rounded-full"></div>
                 </div>
                 {/* Direction indicators */}
-                <div className="absolute top-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs md:text-lg">▲</div>
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs md:text-lg">▼</div>
-                <div className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs md:text-lg">◀</div>
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs md:text-lg">▶</div>
+                <div className="absolute top-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs lg:text-lg">▲</div>
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs lg:text-lg">▼</div>
+                <div className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs lg:text-lg">◀</div>
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs lg:text-lg">▶</div>
               </div>
             </div>
           </>
