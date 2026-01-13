@@ -182,14 +182,14 @@ export default function DesertNights({ onBack }) {
       game.player.isInFireZone = distToFire < game.fire.radius
 
       // === Spawn Resources ===
-      if (game.resourceSpawnTimer > 8000) {
+      if (game.resourceSpawnTimer > 3000) {
         game.resourceSpawnTimer = 0
         const angle = Math.random() * Math.PI * 2
         const distance = 150 + Math.random() * 200
         const x = game.fire.x + Math.cos(angle) * distance
         const y = game.fire.y + Math.sin(angle) * distance
 
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.75) {
           // Spawn wood
           game.woodPieces.push({
             x: Math.max(30, Math.min(canvas.width - 30, x)),
