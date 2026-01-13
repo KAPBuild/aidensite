@@ -122,7 +122,7 @@ export default function DesertNights({ onBack }) {
       game.resourceSpawnTimer += deltaTime
 
       // === Fire Wood Consumption ===
-      if (game.fire.visible && game.woodConsumptionTimer > 10000) {
+      if (game.fire.visible && game.woodConsumptionTimer > 6000) {
         game.woodConsumptionTimer = 0
         setWoodCount(w => {
           const newWood = Math.max(0, w - 1)
