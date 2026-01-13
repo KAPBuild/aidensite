@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import SoccerPenaltyShootout from '../games/SoccerPenaltyShootout'
 import BasketballGame from '../games/BasketballGame'
 import DemonHunter from '../games/DemonHunter'
+import DesertNights from '../games/DesertNights'
 
 export default function GamesSection() {
   const [selectedGame, setSelectedGame] = useState(null)
@@ -12,6 +13,7 @@ export default function GamesSection() {
         {selectedGame === 'penalty' && <SoccerPenaltyShootout onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'basketball' && <BasketballGame onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'demonhunter' && <DemonHunter onBack={() => setSelectedGame(null)} />}
+        {selectedGame === 'desertnights' && <DesertNights onBack={() => setSelectedGame(null)} />}
       </>
     )
   }
@@ -31,6 +33,13 @@ export default function GamesSection() {
 
         {/* Games Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <GameCard
+            emoji="🏜️"
+            title="99 Nights in the Desert"
+            description="Survive the warthogs! Manage wood for fire and food for hunger!"
+            onClick={() => setSelectedGame('desertnights')}
+            color="from-amber-600 to-orange-600"
+          />
           <GameCard
             emoji="👹"
             title="Demon Hunter"
@@ -58,7 +67,8 @@ export default function GamesSection() {
         <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
           <h2 className="text-2xl font-bold text-blue-600 mb-6 text-center">📊 Your Scores</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Leaderboard gameType="desertnights" title="🏜️ Desert Nights" />
             <Leaderboard gameType="penalty" title="⚽ Penalty Shootout" />
             <Leaderboard gameType="basketball" title="🏀 Basketball 3-Point" />
             <Leaderboard gameType="demonhunter" title="👹 Demon Hunter" />
