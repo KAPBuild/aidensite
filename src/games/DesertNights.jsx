@@ -42,6 +42,20 @@ export default function DesertNights({ onBack }) {
     return parseInt(localStorage.getItem('desertNights3DHighestNight') || '0')
   })
 
+  // Refs to access current state values without triggering re-renders
+  const nightRef = useRef(night)
+  const staminaRef = useRef(stamina)
+  const fireStatusRef = useRef(fireStatus)
+  const hungerLevelRef = useRef(hungerLevel)
+  const highestNightRef = useRef(highestNight)
+
+  // Keep refs in sync
+  useEffect(() => { nightRef.current = night }, [night])
+  useEffect(() => { staminaRef.current = stamina }, [stamina])
+  useEffect(() => { fireStatusRef.current = fireStatus }, [fireStatus])
+  useEffect(() => { hungerLevelRef.current = hungerLevel }, [hungerLevel])
+  useEffect(() => { highestNightRef.current = highestNight }, [highestNight])
+
   // Create blocky player mesh
   const createPlayer = useCallback(() => {
     const group = new THREE.Group()
@@ -518,16 +532,17 @@ export default function DesertNights({ onBack }) {
 
       // Check night completion
       if (nightTime >= CONFIG.NIGHT_DURATION) {
-        const nextNight = night + 1
+        const currentNight = nightRef.current
+        const nextNight = currentNight + 1
         if (nextNight > 99) {
           setGameState('victory')
-          if (nextNight - 1 > highestNight) {
-            setHighestNight(nextNight - 1)
-            localStorage.setItem('desertNights3DHighestNight', (nextNight - 1).toString())
+          if (currentNight > highestNightRef.current) {
+            setHighestNight(currentNight)
+            localStorage.setItem('desertNights3DHighestNight', currentNight.toString())
           }
         } else {
           setNight(nextNight)
-          setScore(s => s + 50 * night)
+          setScore(s => s + 50 * currentNight)
           setWoodCount(w => Math.min(CONFIG.MAX_WOOD, w + 5))
           setHungerLevel(h => Math.min(CONFIG.MAX_HUNGER, h + 15))
           game.nightStartTime = Date.now()
@@ -589,7 +604,7 @@ export default function DesertNights({ onBack }) {
       }
 
       // Player movement
-      const speed = game.isSprinting && stamina > 0 ? CONFIG.SPRINT_SPEED : CONFIG.MOVE_SPEED
+      const speed = game.isSprinting && staminaRef.current > 0 ? CONFIG.SPRINT_SPEED : CONFIG.MOVE_SPEED
       let moved = false
 
       if (game.keys['w'] || game.keys['arrowup']) {
@@ -675,15 +690,16 @@ export default function DesertNights({ onBack }) {
       }
 
       // Spawn warthogs (only during night)
-      const maxWarthogs = Math.min(3 + Math.floor(night / 10), 10)
+      const currentNight = nightRef.current
+      const maxWarthogs = Math.min(3 + Math.floor(currentNight / 10), 10)
       if (nightIntensity > 0.3 && game.warthogSpawnTimer > CONFIG.WARTHOG_SPAWN_RATE &&
           game.warthogs.length < maxWarthogs) {
         game.warthogSpawnTimer = 0
 
         let type = 'normal'
-        if (night >= 25 && Math.random() < 0.3) type = 'boar'
-        else if (night >= 10 && Math.random() < 0.4) type = 'normal'
-        else if (night < 10) type = 'piglet'
+        if (currentNight >= 25 && Math.random() < 0.3) type = 'boar'
+        else if (currentNight >= 10 && Math.random() < 0.4) type = 'normal'
+        else if (currentNight < 10) type = 'piglet'
 
         const stats = {
           piglet: { health: 20, speed: 0.08, damage: 5 },
@@ -712,7 +728,7 @@ export default function DesertNights({ onBack }) {
       // Update warthogs
       const firePos = game.fire.position
       const playerPos = game.player.position
-      const fireActive = fireStatus !== 'out'
+      const fireActive = fireStatusRef.current !== 'out'
 
       game.warthogs = game.warthogs.filter(warthog => {
         const pos = warthog.mesh.position
@@ -822,7 +838,7 @@ export default function DesertNights({ onBack }) {
 
       // Heal near fire
       const playerDistToFire = playerPos.distanceTo(firePos)
-      if (playerDistToFire < CONFIG.FIRE_RADIUS && fireActive && hungerLevel > 50) {
+      if (playerDistToFire < CONFIG.FIRE_RADIUS && fireActive && hungerLevelRef.current > 50) {
         setPlayerHealth(hp => Math.min(CONFIG.MAX_HEALTH, hp + 0.02))
       }
 
@@ -904,7 +920,7 @@ export default function DesertNights({ onBack }) {
       containerRef.current?.removeEventListener('click', handleClick)
       cleanup?.()
     }
-  }, [gameState, night, stamina, fireStatus, hungerLevel, highestNight, createWarthog, createWoodLog, initGame])
+  }, [gameState, createWarthog, createWoodLog, initGame])
 
   // Handle resize
   useEffect(() => {
@@ -1033,16 +1049,46 @@ export default function DesertNights({ onBack }) {
 
       {/* Mobile Controls */}
       {gameState === 'playing' && (
-        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-auto md:hidden">
+        <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-auto">
           {/* Attack Button */}
           <button
             onTouchStart={(e) => {
               e.preventDefault()
-              if (gameRef.current) {
-                const now = Date.now()
-                if (now - gameRef.current.lastAttack < 400) return
-                gameRef.current.lastAttack = now
-                // Trigger attack
+              const game = gameRef.current
+              const scene = sceneRef.current
+              if (!game || !scene) return
+
+              const now = Date.now()
+              if (now - game.lastAttack < 400) return
+              game.lastAttack = now
+
+              // Create attack projectile
+              const attackGeo = new THREE.BoxGeometry(0.4, 0.4, 0.2)
+              const attackMat = new THREE.MeshBasicMaterial({ color: 0xcccccc })
+              const attackMesh = new THREE.Mesh(attackGeo, attackMat)
+              attackMesh.position.copy(game.player.position)
+              attackMesh.position.y += 1.5
+
+              const direction = new THREE.Vector3(
+                Math.sin(game.playerFacing),
+                0,
+                -Math.cos(game.playerFacing)
+              )
+
+              scene.add(attackMesh)
+              game.attacks.push({
+                mesh: attackMesh,
+                position: attackMesh.position,
+                direction,
+                damage: CONFIG.QUICK_ATTACK_DAMAGE,
+                traveled: 0
+              })
+
+              // Animate axe swing
+              const axe = game.player.userData.axe
+              if (axe) {
+                axe.rotation.x = -1
+                setTimeout(() => { axe.rotation.x = 0 }, 200)
               }
             }}
             className="w-20 h-20 bg-red-600/80 rounded-full flex items-center justify-center text-4xl border-4 border-red-400 active:scale-90"
@@ -1056,17 +1102,46 @@ export default function DesertNights({ onBack }) {
             style={{ touchAction: 'none' }}
             onTouchStart={(e) => {
               e.preventDefault()
-              handleJoystick(e.touches[0])
+              const game = gameRef.current
+              if (!game) return
+              const touch = e.touches[0]
+              const rect = e.currentTarget.getBoundingClientRect()
+              const centerX = rect.left + rect.width / 2
+              const centerY = rect.top + rect.height / 2
+              const dx = touch.clientX - centerX
+              const dy = touch.clientY - centerY
+              const distance = Math.sqrt(dx * dx + dy * dy)
+
+              game.keys['w'] = distance > 15 && dy < -15
+              game.keys['s'] = distance > 15 && dy > 15
+              game.keys['a'] = distance > 15 && dx < -15
+              game.keys['d'] = distance > 15 && dx > 15
             }}
             onTouchMove={(e) => {
               e.preventDefault()
-              handleJoystick(e.touches[0])
+              const game = gameRef.current
+              if (!game) return
+              const touch = e.touches[0]
+              const rect = e.currentTarget.getBoundingClientRect()
+              const centerX = rect.left + rect.width / 2
+              const centerY = rect.top + rect.height / 2
+              const dx = touch.clientX - centerX
+              const dy = touch.clientY - centerY
+              const distance = Math.sqrt(dx * dx + dy * dy)
+
+              game.keys['w'] = distance > 15 && dy < -15
+              game.keys['s'] = distance > 15 && dy > 15
+              game.keys['a'] = distance > 15 && dx < -15
+              game.keys['d'] = distance > 15 && dx > 15
             }}
             onTouchEnd={(e) => {
               e.preventDefault()
-              if (gameRef.current) {
-                gameRef.current.keys = {}
-              }
+              const game = gameRef.current
+              if (!game) return
+              game.keys['w'] = false
+              game.keys['s'] = false
+              game.keys['a'] = false
+              game.keys['d'] = false
             }}
           >
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-gray-600 rounded-full" />
@@ -1170,10 +1245,4 @@ export default function DesertNights({ onBack }) {
       )}
     </div>
   )
-}
-
-// Helper function for joystick
-function handleJoystick(touch) {
-  // This would need proper implementation with refs
-  // For now it's a placeholder
 }
