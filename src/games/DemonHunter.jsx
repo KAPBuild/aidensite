@@ -18,6 +18,8 @@ export default function DemonHunter({ onBack }) {
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('demonHunterHighScore') || '0')
   })
+  const [dashCooldown, setDashCooldown] = useState(0)
+  const [isDashing, setIsDashing] = useState(false)
 
   const gameRef = useRef({
     player: { x: 400, y: 300, size: 30, speed: 1, facing: 'right' },
@@ -117,6 +119,58 @@ export default function DemonHunter({ onBack }) {
     }
   }, [weapon])
 
+  const dash = useCallback(() => {
+    if (dashCooldown > 0 || isDashing) return
+
+    const game = gameRef.current
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    setIsDashing(true)
+    setDashCooldown(100) // 2 second cooldown (will count down)
+
+    // Dash in facing direction
+    const dashDistance = 120
+    const dashAngle = game.player.facing === 'right' ? 0 :
+                      game.player.facing === 'left' ? Math.PI :
+                      game.player.facing === 'up' ? -Math.PI/2 : Math.PI/2
+
+    // Create afterimage particles
+    for (let i = 0; i < 8; i++) {
+      game.particles.push({
+        x: game.player.x,
+        y: game.player.y,
+        vx: (Math.random() - 0.5) * 3,
+        vy: (Math.random() - 0.5) * 3,
+        life: 25,
+        color: '#00ffff'
+      })
+    }
+
+    // Move player
+    const newX = game.player.x + Math.cos(dashAngle) * dashDistance
+    const newY = game.player.y + Math.sin(dashAngle) * dashDistance
+
+    // Keep in bounds
+    game.player.x = Math.max(35, Math.min(canvas.width - 35, newX))
+    game.player.y = Math.max(35, Math.min(canvas.height - 35, newY))
+
+    // Create arrival particles
+    for (let i = 0; i < 5; i++) {
+      game.particles.push({
+        x: game.player.x,
+        y: game.player.y,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        life: 20,
+        color: '#88ffff'
+      })
+    }
+
+    // End dash after brief invincibility
+    setTimeout(() => setIsDashing(false), 200)
+  }, [dashCooldown, isDashing])
+
   useEffect(() => {
     if (gameState !== 'playing') return
 
@@ -129,6 +183,10 @@ export default function DemonHunter({ onBack }) {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault()
         attack()
+      }
+      if (e.key === 'Shift') {
+        e.preventDefault()
+        dash()
       }
       if (e.key === 'Escape') {
         setGameState('paused')
@@ -194,6 +252,11 @@ export default function DemonHunter({ onBack }) {
       // Keep player in bounds (with padding)
       game.player.x = Math.max(35, Math.min(canvas.width - 35, game.player.x))
       game.player.y = Math.max(35, Math.min(canvas.height - 35, game.player.y))
+
+      // Update dash cooldown
+      if (dashCooldown > 0) {
+        setDashCooldown(prev => Math.max(0, prev - 1))
+      }
 
       // Spawn demons - only spawn if wave isn't complete
       game.spawnTimer += deltaTime
@@ -306,20 +369,26 @@ export default function DemonHunter({ onBack }) {
           demon.y += (dy / dist) * demon.speed
         }
 
-        // Check collision with player
+        // Check collision with player (ignore if dashing - invincible!)
         if (dist < game.player.size + demon.size / 2) {
-          setPlayerHealth(h => {
-            const newHealth = h - demon.damage
-            if (newHealth <= 0) {
-              setGameState('gameover')
-              if (score > highScore) {
-                setHighScore(score)
-                localStorage.setItem('demonHunterHighScore', score.toString())
+          if (isDashing) {
+            // Player is invincible during dash - push demon away
+            demon.x -= (dx / dist) * 30
+            demon.y -= (dy / dist) * 30
+          } else {
+            setPlayerHealth(h => {
+              const newHealth = h - demon.damage
+              if (newHealth <= 0) {
+                setGameState('gameover')
+                if (score > highScore) {
+                  setHighScore(score)
+                  localStorage.setItem('demonHunterHighScore', score.toString())
+                }
               }
-            }
-            return Math.max(0, newHealth)
-          })
-          return false
+              return Math.max(0, newHealth)
+            })
+            return false
+          }
         }
 
         // Draw demon
@@ -461,22 +530,28 @@ export default function DemonHunter({ onBack }) {
           boss.y += (dy / dist) * boss.speed
         }
 
-        // Check collision with player
+        // Check collision with player (ignore if dashing - invincible!)
         if (dist < game.player.size + boss.size / 2) {
-          setPlayerHealth(h => {
-            const newHealth = h - boss.damage
-            if (newHealth <= 0) {
-              setGameState('gameover')
-              if (score > highScore) {
-                setHighScore(score)
-                localStorage.setItem('demonHunterHighScore', score.toString())
+          if (isDashing) {
+            // Player is invincible during dash - push boss away
+            boss.x -= (dx / dist) * 40
+            boss.y -= (dy / dist) * 40
+          } else {
+            setPlayerHealth(h => {
+              const newHealth = h - boss.damage
+              if (newHealth <= 0) {
+                setGameState('gameover')
+                if (score > highScore) {
+                  setHighScore(score)
+                  localStorage.setItem('demonHunterHighScore', score.toString())
+                }
               }
-            }
-            return Math.max(0, newHealth)
-          })
-          // Push boss back a bit
-          boss.x -= (dx / dist) * 50
-          boss.y -= (dy / dist) * 50
+              return Math.max(0, newHealth)
+            })
+            // Push boss back a bit
+            boss.x -= (dx / dist) * 50
+            boss.y -= (dy / dist) * 50
+          }
         }
 
         // Check collision with attacks
@@ -572,6 +647,17 @@ export default function DemonHunter({ onBack }) {
       ctx.font = `${game.player.size}px Arial`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
+
+      // Dash glow effect
+      if (isDashing) {
+        ctx.save()
+        ctx.shadowColor = '#00ffff'
+        ctx.shadowBlur = 20
+        ctx.globalAlpha = 0.8
+        ctx.fillText('🧑', game.player.x, game.player.y)
+        ctx.restore()
+      }
+
       ctx.fillText('🧑', game.player.x, game.player.y)
 
       // Draw weapon the player is holding
@@ -636,6 +722,11 @@ export default function DemonHunter({ onBack }) {
       ctx.fillText(`Coins: ${coins}`, 20, 105)
       ctx.fillText(`Weapon: ${weapon.name}`, 20, 130)
 
+      // Dash cooldown indicator
+      const dashReady = dashCooldown === 0
+      ctx.fillStyle = dashReady ? '#00ffff' : '#666666'
+      ctx.fillText(`Dash: ${dashReady ? 'READY' : Math.ceil(dashCooldown / 50) + 's'}`, 20, 155)
+
       // Shield health bar
       const shieldX = canvas.width - 130
       const shieldY = 45
@@ -686,7 +777,7 @@ export default function DemonHunter({ onBack }) {
       window.removeEventListener('keyup', handleKeyUp)
       canvas.removeEventListener('click', handleClick)
     }
-  }, [gameState, attack, spawnDemon, wave, weapon, score, coins, playerHealth, highScore])
+  }, [gameState, attack, dash, spawnDemon, wave, weapon, score, coins, playerHealth, highScore, isDashing, dashCooldown])
 
   const startGame = () => {
     const game = gameRef.current
@@ -703,6 +794,8 @@ export default function DemonHunter({ onBack }) {
     setScore(0)
     setWave(1)
     setPlayerHealth(150)
+    setDashCooldown(0)
+    setIsDashing(false)
     setGameState('playing')
   }
 
@@ -768,6 +861,7 @@ export default function DemonHunter({ onBack }) {
               <div className="text-gray-400 mb-8 text-center">
                 <p>WASD or Arrow Keys to move</p>
                 <p>SPACE or Click to attack</p>
+                <p className="text-cyan-400">SHIFT to dash (invincible dodge!)</p>
                 <p>ESC to pause</p>
               </div>
 
@@ -936,29 +1030,45 @@ export default function DemonHunter({ onBack }) {
           )}
         </div>
 
-        {/* Mobile Controls - Bottom bar for all screen sizes */}
+        {/* Mobile Controls - Responsive for portrait and landscape */}
         {gameState === 'playing' && (
-          <div className="w-full flex items-end justify-between px-4 pb-4 pt-2 gap-4 flex-shrink-0">
-            {/* Attack Button - Left side */}
-            <div className="flex items-center justify-center">
+          <div className="w-full flex items-center justify-between px-2 sm:px-4 pb-2 sm:pb-4 pt-1 sm:pt-2 gap-2 sm:gap-4 flex-shrink-0">
+            {/* Left side - Attack + Dash buttons */}
+            <div className="flex items-center gap-2">
               <button
                 onTouchStart={(e) => {
                   e.preventDefault()
                   attack()
                 }}
                 onClick={attack}
-                className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-xl sm:text-2xl text-white shadow-2xl active:scale-90 transition-transform border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600"
+                className="w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-b from-red-500 to-red-700 rounded-full font-bold text-lg sm:text-xl text-white shadow-2xl active:scale-90 transition-transform border-3 sm:border-4 border-red-400 flex items-center justify-center hover:from-red-400 hover:to-red-600"
                 style={{ touchAction: 'none' }}
               >
                 ⚔️
               </button>
+              <button
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  dash()
+                }}
+                onClick={dash}
+                disabled={dashCooldown > 0}
+                className={`w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full font-bold text-lg sm:text-xl text-white shadow-2xl active:scale-90 transition-transform border-3 sm:border-4 flex items-center justify-center ${
+                  dashCooldown > 0
+                    ? 'bg-gradient-to-b from-gray-500 to-gray-700 border-gray-400 opacity-60'
+                    : 'bg-gradient-to-b from-cyan-400 to-cyan-600 border-cyan-300 hover:from-cyan-300 hover:to-cyan-500'
+                }`}
+                style={{ touchAction: 'none' }}
+              >
+                {dashCooldown > 0 ? `${Math.ceil(dashCooldown / 50)}` : '💨'}
+              </button>
             </div>
 
-            {/* Shop Button - Center bottom */}
+            {/* Shop Button - Center */}
             <div className="flex items-center justify-center">
               <button
                 onClick={() => setGameState('shop')}
-                className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-2xl sm:text-3xl shadow-2xl active:scale-90 transition-transform border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500"
+                className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-gradient-to-b from-yellow-400 to-yellow-600 rounded-full font-bold text-xl sm:text-2xl shadow-2xl active:scale-90 transition-transform border-3 sm:border-4 border-yellow-300 flex items-center justify-center hover:from-yellow-300 hover:to-yellow-500"
               >
                 🛒
               </button>
@@ -967,7 +1077,7 @@ export default function DemonHunter({ onBack }) {
             {/* Joystick - Right side */}
             <div className="flex items-center justify-center">
               <div
-                className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-900 border-4 border-gray-700 shadow-2xl p-2"
+                className="relative w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full bg-gray-900 border-3 sm:border-4 border-gray-700 shadow-2xl p-1 sm:p-2"
                 style={{ touchAction: 'none' }}
                 onTouchStart={(e) => {
                   e.preventDefault()
@@ -1008,14 +1118,14 @@ export default function DemonHunter({ onBack }) {
                 }}
               >
                 {/* Joystick center button */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full border-2 border-gray-500 shadow-lg">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full border-2 border-gray-500 shadow-lg">
                   <div className="absolute inset-1 bg-gradient-to-b from-gray-500 to-gray-700 rounded-full"></div>
                 </div>
                 {/* Direction indicators */}
-                <div className="absolute top-1 left-1/2 -translate-x-1/2 text-gray-600 text-sm sm:text-lg">▲</div>
-                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-sm sm:text-lg">▼</div>
-                <div className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-600 text-sm sm:text-lg">◀</div>
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 text-sm sm:text-lg">▶</div>
+                <div className="absolute top-0.5 sm:top-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs sm:text-sm lg:text-lg">▲</div>
+                <div className="absolute bottom-0.5 sm:bottom-1 left-1/2 -translate-x-1/2 text-gray-600 text-xs sm:text-sm lg:text-lg">▼</div>
+                <div className="absolute left-0.5 sm:left-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs sm:text-sm lg:text-lg">◀</div>
+                <div className="absolute right-0.5 sm:right-1 top-1/2 -translate-y-1/2 text-gray-600 text-xs sm:text-sm lg:text-lg">▶</div>
               </div>
             </div>
           </div>
