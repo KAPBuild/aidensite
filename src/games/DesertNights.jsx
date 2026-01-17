@@ -41,6 +41,8 @@ export default function DesertNights({ onBack }) {
   const [highestNight, setHighestNight] = useState(() => {
     return parseInt(localStorage.getItem('desertNights3DHighestNight') || '0')
   })
+  const [damageFlash, setDamageFlash] = useState(false)
+  const [collectFlash, setCollectFlash] = useState(null)  // 'wood' or 'food'
 
   // Refs to access current state values without triggering re-renders
   const nightRef = useRef(night)
@@ -519,16 +521,23 @@ export default function DesertNights({ onBack }) {
       const progress = Math.min(nightTime / CONFIG.NIGHT_DURATION, 1)
       setNightProgress(progress)
 
-      // Day/night cycle visuals
+      // Day/night cycle visuals - more dramatic!
       const nightIntensity = Math.sin(progress * Math.PI)
       const skyColor = new THREE.Color().lerpColors(
-        new THREE.Color(0x87CEEB),
-        new THREE.Color(0x1a1a3a),
-        nightIntensity * 0.8
+        new THREE.Color(0x87CEEB),  // Day: light blue
+        new THREE.Color(0x0a0a1a),  // Night: very dark blue/black
+        nightIntensity
       )
       scene.background = skyColor
-      game.sunLight.intensity = 0.8 - nightIntensity * 0.6
-      game.ambientLight.intensity = 0.4 - nightIntensity * 0.25
+      scene.fog.color.copy(skyColor)
+      game.sunLight.intensity = Math.max(0.1, 0.8 - nightIntensity * 0.7)
+      game.ambientLight.intensity = Math.max(0.15, 0.4 - nightIntensity * 0.3)
+
+      // Fire becomes more important at night - increase its glow
+      const fireLight = game.fire.userData.light
+      if (fireLight && fireStatusRef.current !== 'out') {
+        fireLight.intensity = 1.5 + nightIntensity * 2  // Brighter at night!
+      }
 
       // Check night completion
       if (nightTime >= CONFIG.NIGHT_DURATION) {
@@ -570,10 +579,44 @@ export default function DesertNights({ onBack }) {
           else if (newWood > 0) setFireStatus('flickering')
           else setFireStatus('out')
 
-          // Update fire visuals
+          // Update fire visuals - scale and color based on wood
+          const fireScale = newWood > 15 ? 1.2 : newWood > 5 ? 1 : newWood > 0 ? 0.6 : 0.1
+          game.fire.children.forEach(child => {
+            if (child.userData.baseY !== undefined) {
+              child.scale.setScalar(fireScale)
+              // Change color based on status
+              if (child.material) {
+                if (newWood > 15) child.material.color.setHex(0xff4500)  // Blazing orange
+                else if (newWood > 5) child.material.color.setHex(0xff6600)  // Normal orange
+                else if (newWood > 0) child.material.color.setHex(0xff3300)  // Dim red
+                else child.material.color.setHex(0x333333)  // Gray embers
+              }
+            }
+          })
+
+          // Update light
           const light = game.fire.userData.light
           if (light) {
-            light.intensity = newWood > 0 ? 1 + (newWood / 20) : 0
+            light.intensity = newWood > 0 ? 1 + (newWood / 15) : 0.2
+            light.color.setHex(newWood > 5 ? 0xff6600 : newWood > 0 ? 0xff3300 : 0x331100)
+          }
+
+          // Update safe zone ring color
+          const zone = game.fire.userData.zone
+          if (zone && zone.material) {
+            if (newWood > 15) {
+              zone.material.color.setHex(0x00ff00)  // Green = very safe
+              zone.material.opacity = 0.4
+            } else if (newWood > 5) {
+              zone.material.color.setHex(0xff6600)  // Orange = normal
+              zone.material.opacity = 0.3
+            } else if (newWood > 0) {
+              zone.material.color.setHex(0xff0000)  // Red = danger!
+              zone.material.opacity = 0.5
+            } else {
+              zone.material.color.setHex(0x333333)  // Gray = no protection!
+              zone.material.opacity = 0.2
+            }
           }
 
           return newWood
@@ -689,17 +732,22 @@ export default function DesertNights({ onBack }) {
         }
       }
 
-      // Spawn warthogs (only during night)
+      // Spawn warthogs - spawn earlier and more aggressively!
       const currentNight = nightRef.current
-      const maxWarthogs = Math.min(3 + Math.floor(currentNight / 10), 10)
-      if (nightIntensity > 0.3 && game.warthogSpawnTimer > CONFIG.WARTHOG_SPAWN_RATE &&
+      const maxWarthogs = Math.min(2 + Math.floor(currentNight / 5), 12)  // More warthogs, scales faster
+      const spawnThreshold = 0.1  // Spawn much earlier in the night (10% vs 30%)
+      const spawnRate = Math.max(1500, CONFIG.WARTHOG_SPAWN_RATE - currentNight * 50)  // Spawn faster as nights progress
+
+      if (nightIntensity > spawnThreshold && game.warthogSpawnTimer > spawnRate &&
           game.warthogs.length < maxWarthogs) {
         game.warthogSpawnTimer = 0
 
-        let type = 'normal'
-        if (currentNight >= 25 && Math.random() < 0.3) type = 'boar'
-        else if (currentNight >= 10 && Math.random() < 0.4) type = 'normal'
-        else if (currentNight < 10) type = 'piglet'
+        let type = 'piglet'
+        const roll = Math.random()
+        if (currentNight >= 50 && roll < 0.2) type = 'alpha'
+        else if (currentNight >= 25 && roll < 0.4) type = 'boar'
+        else if (currentNight >= 10 && roll < 0.6) type = 'normal'
+        else if (currentNight >= 5) type = roll < 0.5 ? 'normal' : 'piglet'
 
         const stats = {
           piglet: { health: 20, speed: 0.08, damage: 5 },
@@ -760,6 +808,8 @@ export default function DesertNights({ onBack }) {
 
         if (distToPlayer < 2 && !playerSafe && now - warthog.lastAttack > 1000) {
           warthog.lastAttack = now
+          setDamageFlash(true)
+          setTimeout(() => setDamageFlash(false), 200)
           setPlayerHealth(hp => {
             const newHealth = Math.max(0, hp - warthog.damage)
             if (newHealth === 0) setGameState('gameover')
@@ -815,6 +865,8 @@ export default function DesertNights({ onBack }) {
           scene.remove(log)
           setWoodCount(w => Math.min(CONFIG.MAX_WOOD, w + CONFIG.WOOD_PER_LOG))
           setScore(s => s + 1)
+          setCollectFlash('wood')
+          setTimeout(() => setCollectFlash(null), 300)
           return false
         }
         return true
@@ -831,6 +883,8 @@ export default function DesertNights({ onBack }) {
             setPlayerHealth(hp => Math.min(CONFIG.MAX_HEALTH, hp + 10))
           }
           setScore(s => s + 1)
+          setCollectFlash('food')
+          setTimeout(() => setCollectFlash(null), 300)
           return false
         }
         return true
@@ -946,6 +1000,18 @@ export default function DesertNights({ onBack }) {
         className={`w-full h-full ${gameState !== 'playing' ? 'pointer-events-none' : ''}`}
         style={{ touchAction: 'none' }}
       />
+
+      {/* Damage Flash Overlay */}
+      {damageFlash && (
+        <div className="absolute inset-0 bg-red-500/40 pointer-events-none animate-pulse z-50" />
+      )}
+
+      {/* Collect Flash Overlay */}
+      {collectFlash && (
+        <div className={`absolute inset-0 pointer-events-none z-50 ${
+          collectFlash === 'wood' ? 'bg-amber-500/30' : 'bg-green-500/30'
+        }`} />
+      )}
 
       {/* HUD Overlay */}
       {gameState === 'playing' && (
