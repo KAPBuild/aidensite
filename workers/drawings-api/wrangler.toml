@@ -1,0 +1,21 @@
+name = "aidensite-drawings-api"
+main = "src/index.js"
+compatibility_date = "2024-12-25"
+
+# KV Namespace for storing drawing metadata and likes
+[[kv_namespaces]]
+binding = "DRAWINGS_KV"
+id = ""  # You'll fill this in after creating the KV namespace
+
+# R2 Bucket for storing images
+[[r2_buckets]]
+binding = "DRAWINGS_BUCKET"
+bucket_name = "aidensite-drawings"
+
+# Environment variables
+[vars]
+CORS_ORIGIN = "*"  # Change to your actual domain in production
+
+# Development settings
+[dev]
+port = 8787
