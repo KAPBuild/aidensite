@@ -18,7 +18,7 @@ const CONFIG = {
   WOOD_PER_LOG: 5,
   MAX_WOOD: 50,
   RESOURCE_SPAWN_RATE: 2500,
-  WARTHOG_SPAWN_RATE: 4000,
+  WARTHOG_SPAWN_RATE: 2500,  // First warthog spawns after ~2.5s
 }
 
 export default function DesertNights({ onBack }) {
@@ -734,31 +734,31 @@ export default function DesertNights({ onBack }) {
 
       // Spawn warthogs - spawn earlier and more aggressively!
       const currentNight = nightRef.current
-      const maxWarthogs = Math.min(2 + Math.floor(currentNight / 5), 12)  // More warthogs, scales faster
-      const spawnThreshold = 0.1  // Spawn much earlier in the night (10% vs 30%)
-      const spawnRate = Math.max(1500, CONFIG.WARTHOG_SPAWN_RATE - currentNight * 50)  // Spawn faster as nights progress
+      const maxWarthogs = Math.min(3 + Math.floor(currentNight / 3), 15)  // More warthogs, scales faster
+      const spawnThreshold = 0.05  // Spawn very early in the night (5%)
+      const spawnRate = Math.max(1000, CONFIG.WARTHOG_SPAWN_RATE - currentNight * 80)  // Spawn faster as nights progress
 
       if (nightIntensity > spawnThreshold && game.warthogSpawnTimer > spawnRate &&
           game.warthogs.length < maxWarthogs) {
         game.warthogSpawnTimer = 0
 
-        let type = 'piglet'
+        let type = 'normal'  // Start with normal warthogs from night 1
         const roll = Math.random()
-        if (currentNight >= 50 && roll < 0.2) type = 'alpha'
+        if (currentNight >= 50 && roll < 0.25) type = 'alpha'
         else if (currentNight >= 25 && roll < 0.4) type = 'boar'
-        else if (currentNight >= 10 && roll < 0.6) type = 'normal'
-        else if (currentNight >= 5) type = roll < 0.5 ? 'normal' : 'piglet'
+        else if (currentNight >= 10 && roll < 0.5) type = 'boar'
+        else if (currentNight < 3) type = roll < 0.6 ? 'piglet' : 'normal'
 
         const stats = {
-          piglet: { health: 20, speed: 0.08, damage: 5 },
-          normal: { health: 40, speed: 0.06, damage: 15 },
-          boar: { health: 80, speed: 0.04, damage: 25 },
-          alpha: { health: 150, speed: 0.05, damage: 40 }
+          piglet: { health: 20, speed: 0.10, damage: 5 },
+          normal: { health: 40, speed: 0.08, damage: 15 },
+          boar: { health: 80, speed: 0.06, damage: 25 },
+          alpha: { health: 150, speed: 0.07, damage: 40 }
         }
 
         const warthog = createWarthog(type)
         const angle = Math.random() * Math.PI * 2
-        const dist = 35 + Math.random() * 10
+        const dist = 20 + Math.random() * 10  // Spawn closer (20-30 units instead of 35-45)
         warthog.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist)
         scene.add(warthog)
 
@@ -788,7 +788,8 @@ export default function DesertNights({ onBack }) {
         dir.subVectors(playerPos, pos).normalize()
 
         // Check if next position would be in fire zone
-        const nextPos = pos.clone().add(dir.multiplyScalar(warthog.speed))
+        const moveVector = dir.clone().multiplyScalar(warthog.speed)
+        const nextPos = pos.clone().add(moveVector)
         const nextDistToFire = nextPos.distanceTo(firePos)
 
         if (fireActive && nextDistToFire < CONFIG.FIRE_RADIUS) {
@@ -796,7 +797,7 @@ export default function DesertNights({ onBack }) {
           const tangent = new THREE.Vector3(-dir.z, 0, dir.x)
           pos.add(tangent.multiplyScalar(warthog.speed * 0.5))
         } else {
-          pos.add(dir.multiplyScalar(warthog.speed))
+          pos.add(moveVector)
         }
 
         // Face player
