@@ -3,6 +3,7 @@ import SoccerPenaltyShootout from '../games/SoccerPenaltyShootout'
 import BasketballGame from '../games/BasketballGame'
 import DemonHunter from '../games/DemonHunter'
 import DesertNights from '../games/DesertNights'
+import EscapeTsunami from '../games/EscapeTsunami'
 
 export default function GamesSection() {
   const [selectedGame, setSelectedGame] = useState(null)
@@ -14,6 +15,7 @@ export default function GamesSection() {
         {selectedGame === 'basketball' && <BasketballGame onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'demonhunter' && <DemonHunter onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'desertnights' && <DesertNights onBack={() => setSelectedGame(null)} />}
+        {selectedGame === 'escapetsunami' && <EscapeTsunami onBack={() => setSelectedGame(null)} />}
       </>
     )
   }
@@ -33,6 +35,13 @@ export default function GamesSection() {
 
         {/* Games Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <GameCard
+            emoji="🌊"
+            title="Escape Tsunami"
+            description="Run through 6 emoji zones to escape the tsunami! Spin for galaxy rewards!"
+            onClick={() => setSelectedGame('escapetsunami')}
+            color="from-cyan-600 to-blue-800"
+          />
           <GameCard
             emoji="🏜️"
             title="99 Nights in the Desert"
@@ -68,6 +77,7 @@ export default function GamesSection() {
           <h2 className="text-2xl font-bold text-blue-600 mb-6 text-center">📊 Your Scores</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Leaderboard gameType="escapetsunami" title="🌊 Escape Tsunami" />
             <Leaderboard gameType="desertnights" title="🏜️ Desert Nights" />
             <Leaderboard gameType="penalty" title="⚽ Penalty Shootout" />
             <Leaderboard gameType="basketball" title="🏀 Basketball 3-Point" />
