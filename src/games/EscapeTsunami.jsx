@@ -314,37 +314,43 @@ export default function EscapeTsunami({ onBack }) {
     playerEmoji.position.set(0, 1.5, 2)
     scene.add(playerEmoji)
 
-    // ─── TSUNAMI WALL ───────────────────────
+    // ─── TSUNAMI WAVE (reusable — hidden until triggered) ─────
     const tsunamiGroup = new THREE.Group()
 
-    // Main wave
-    const tsunamiGeo = new THREE.BoxGeometry(30, 12, 4)
+    // Main water wall — tall and wide so you can't miss it
+    const tsunamiGeo = new THREE.BoxGeometry(40, 18, 6)
     const tsunamiMat = new THREE.MeshPhongMaterial({
       color: 0x0288D1,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.8,
       emissive: 0x01579B,
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.4,
     })
-    const tsunami = new THREE.Mesh(tsunamiGeo, tsunamiMat)
-    tsunami.position.y = 6
-    tsunamiGroup.add(tsunami)
+    const tsunamiMesh = new THREE.Mesh(tsunamiGeo, tsunamiMat)
+    tsunamiMesh.position.y = 9
+    tsunamiGroup.add(tsunamiMesh)
 
-    // Wave emojis on tsunami
-    for (let i = 0; i < 5; i++) {
-      const waveEmoji = createEmojiSprite('🌊', 4)
-      waveEmoji.position.set(-8 + i * 4, 8, 2.5)
+    // Big wave emojis across the front
+    for (let i = 0; i < 7; i++) {
+      const waveEmoji = createEmojiSprite('🌊', 5)
+      waveEmoji.position.set(-12 + i * 4, 14, 3.5)
       tsunamiGroup.add(waveEmoji)
     }
+    // Foam layer on top
+    const foamGeo = new THREE.BoxGeometry(40, 3, 6)
+    const foamMat = new THREE.MeshLambertMaterial({ color: 0xB3E5FC, transparent: true, opacity: 0.7 })
+    const foam = new THREE.Mesh(foamGeo, foamMat)
+    foam.position.y = 19
+    tsunamiGroup.add(foam)
 
-    tsunamiGroup.position.set(0, 0, 35)
+    tsunamiGroup.visible = false
     scene.add(tsunamiGroup)
 
     // ─── GAME STATE ────────────────
     gameRef.current = {
       player: playerEmoji,
       tsunami: tsunamiGroup,
-      tsunamiMesh: tsunami,
+      tsunamiMesh,
       keys: {},
       coins: [],
       coinTimer: 0,
@@ -360,6 +366,13 @@ export default function EscapeTsunami({ onBack }) {
       finishZ,
       areaBoundaries,
       lastAreaIdx: -1,
+      // Wave system: tsunami spawns periodically
+      waveActive: false,
+      waveTimer: 4000, // first wave comes after 4 seconds
+      waveInterval: 5000, // time between waves (shrinks with difficulty)
+      wavesPerArea: 2,
+      waveSpeed: 0,
+      wavesSpawned: 0,
     }
 
     return { scene, camera, renderer }
@@ -413,11 +426,14 @@ export default function EscapeTsunami({ onBack }) {
 
     g.tsunamiType = TSUNAMI_TYPES[tsunamiIdx]
     g.tsunamiMesh.material.color.set(g.tsunamiType.color)
-    g.tsunami.position.z = 35
+    g.tsunami.visible = false
+    g.waveActive = false
+    g.waveTimer = 4000
+    g.waveSpeed = g.tsunamiType.speed * 3.5
+    g.wavesSpawned = 0
+    // Faster waves in later rounds
+    g.waveInterval = Math.max(3000, 6000 - roundNum * 400)
     g.player.position.set(0, 1.5, 2)
-
-    setTsunamiWarning(g.tsunamiType.warning)
-    setTimeout(() => setTsunamiWarning(''), 3000)
 
     // Spawn initial coins
     for (let i = 0; i < 10; i++) spawnCoin()
@@ -488,18 +504,7 @@ export default function EscapeTsunami({ onBack }) {
       game.player.position.x = newX
       game.player.position.z = newZ
 
-      // ─── Tsunami movement ─────
-      let tsunamiSpeed = game.tsunamiType.speed * dt
-      if (game.freezeTimer > 0) {
-        tsunamiSpeed *= 0.2
-        game.freezeTimer -= dt * 16.67
-      }
-
-      game.tsunami.position.z -= tsunamiSpeed
-      // Wave animation
-      game.tsunami.position.y = Math.sin(time * 0.003) * 0.5
-
-      // ─── Check if player is hiding ────
+      // ─── Check if player is hiding behind a shelter ────
       let playerHiding = false
       for (const shelter of game.shelters) {
         const dx = game.player.position.x - shelter.x
@@ -510,40 +515,97 @@ export default function EscapeTsunami({ onBack }) {
           break
         }
       }
+      // Also count being near an obstacle as hiding
+      if (!playerHiding) {
+        for (const obs of game.obstacles) {
+          const dx = game.player.position.x - obs.x
+          const dz = game.player.position.z - obs.z
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          if (dist < obs.radius + 1.2) {
+            playerHiding = true
+            break
+          }
+        }
+      }
       setIsHiding(playerHiding)
 
-      // ─── Tsunami hits player ──────
-      if (game.tsunami.position.z <= game.player.position.z + 3) {
-        if (playerHiding) {
-          game.tsunami.position.z = game.player.position.z - 8
-          setMessage('🛖 Safe in shelter!')
-          setTimeout(() => setMessage(''), 2000)
-        } else if (hasShieldRef.current) {
-          setHasShield(false)
-          game.tsunami.position.z = game.player.position.z + 25
-          setMessage('🛡️ Shield blocked tsunami!')
-          setTimeout(() => setMessage(''), 2000)
-        } else if (game.galaxySlapActive) {
-          game.tsunami.position.z = game.player.position.z + 50
-          setMessage('🪐 Galaxy Slap pushed it back!')
-          setTimeout(() => setMessage(''), 2000)
-        } else {
-          // Game over
-          const finalScore = scoreRef.current
-          const savedHigh = parseInt(localStorage.getItem('escapeTsunamiHighScore') || '0')
-          if (finalScore > savedHigh) {
-            localStorage.setItem('escapeTsunamiHighScore', finalScore.toString())
-            setHighScore(finalScore)
-          }
-          const saved = localStorage.getItem('aidenScores-escapetsunami')
-          const scores = saved ? JSON.parse(saved) : []
-          scores.push({ score: finalScore, date: new Date().toLocaleDateString() })
-          localStorage.setItem('aidenScores-escapetsunami', JSON.stringify(scores))
+      // ─── Tsunami wave system ──────
+      if (game.freezeTimer > 0) {
+        game.freezeTimer -= dt * 16.67
+      }
 
-          setDamageFlash(true)
-          setTimeout(() => setDamageFlash(false), 300)
-          setGameState('gameover')
-          return
+      if (!game.waveActive) {
+        // Count down to next wave
+        const timerDrain = game.freezeTimer > 0 ? dt * 16.67 * 0.3 : dt * 16.67
+        game.waveTimer -= timerDrain
+        if (game.waveTimer <= 0) {
+          // Spawn a wave!
+          game.waveActive = true
+          game.wavesSpawned++
+          // Wave spawns far ahead of the player and rushes TOWARD them
+          game.tsunami.position.z = game.player.position.z - 80
+          game.tsunami.position.x = 0
+          game.tsunami.visible = true
+          // Pick wave type — gets harder as more waves spawn
+          const waveTypeIdx = Math.min(Math.floor(game.wavesSpawned / 3), 3)
+          game.tsunamiType = TSUNAMI_TYPES[waveTypeIdx]
+          game.tsunamiMesh.material.color.set(game.tsunamiType.color)
+          game.waveSpeed = (0.3 + game.tsunamiType.speed * 2) * 1.2
+
+          setTsunamiWarning(game.tsunamiType.warning)
+          setTimeout(() => setTsunamiWarning(''), 2500)
+        }
+      } else {
+        // Wave is active — move it toward the player (increasing z)
+        const spd = game.freezeTimer > 0 ? game.waveSpeed * 0.3 : game.waveSpeed
+        game.tsunami.position.z += spd * dt
+        // Wave bobbing animation
+        game.tsunami.position.y = Math.sin(time * 0.005) * 1.5
+
+        // Check if wave has reached the player
+        const waveFrontZ = game.tsunami.position.z + 3
+        const playerZ = game.player.position.z
+        if (waveFrontZ >= playerZ - 1 && waveFrontZ <= playerZ + 4) {
+          // Wave is sweeping through player position
+          if (playerHiding) {
+            setMessage('🛖 Safe! The wave passed over!')
+            setTimeout(() => setMessage(''), 2000)
+          } else if (hasShieldRef.current) {
+            setHasShield(false)
+            setMessage('🛡️ Shield blocked the wave!')
+            setTimeout(() => setMessage(''), 2000)
+          } else if (game.galaxySlapActive) {
+            setMessage('🪐 Galaxy Slap deflected the wave!')
+            setTimeout(() => setMessage(''), 2000)
+          } else {
+            // Game over — hit by tsunami
+            const finalScore = scoreRef.current
+            const savedHigh = parseInt(localStorage.getItem('escapeTsunamiHighScore') || '0')
+            if (finalScore > savedHigh) {
+              localStorage.setItem('escapeTsunamiHighScore', finalScore.toString())
+              setHighScore(finalScore)
+            }
+            const saved = localStorage.getItem('aidenScores-escapetsunami')
+            const scores = saved ? JSON.parse(saved) : []
+            scores.push({ score: finalScore, date: new Date().toLocaleDateString() })
+            localStorage.setItem('aidenScores-escapetsunami', JSON.stringify(scores))
+
+            setDamageFlash(true)
+            setTimeout(() => setDamageFlash(false), 300)
+            setGameState('gameover')
+            return
+          }
+          // Wave passed — hide it and reset timer
+          game.waveActive = false
+          game.tsunami.visible = false
+          game.waveTimer = game.waveInterval
+        }
+
+        // If wave passed way beyond player, reset
+        if (game.tsunami.position.z > game.player.position.z + 30) {
+          game.waveActive = false
+          game.tsunami.visible = false
+          game.waveTimer = game.waveInterval
         }
       }
 
@@ -810,11 +872,11 @@ export default function EscapeTsunami({ onBack }) {
             <p className="mb-2">Run through ALL 9 zones to escape the tsunami! Can you reach Godly?</p>
             <p className="font-bold text-yellow-300 mb-2">🎮 HOW TO PLAY:</p>
             <ul className="text-sm space-y-1">
-              <li>• Run forward (↑ or W) to escape</li>
-              <li>• Dodge 🌳🪨🏠 obstacles</li>
-              <li>• Hide in 🛖 shelters when tsunami is close</li>
+              <li>• Run forward (↑ or W) toward the finish</li>
+              <li>• Tsunami waves come every few seconds!</li>
+              <li>• Hide behind 🛖 shelters or 🌳🪨 obstacles to survive</li>
               <li>• Collect 💰 coins for upgrades</li>
-              <li>• Reach the 🏁 finish to win!</li>
+              <li>• Reach the 🏁 finish to win the round!</li>
             </ul>
           </div>
 
@@ -1010,9 +1072,11 @@ export default function EscapeTsunami({ onBack }) {
         </div>
       </div>
 
-      {/* Goal indicator */}
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 bg-green-600/80 text-white px-4 py-1 rounded-full text-sm font-bold z-20 pointer-events-none">
-        🏁 Run to the finish line!
+      {/* Goal / wave status indicator */}
+      <div className={`absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold z-20 pointer-events-none ${
+        gameRef.current?.waveActive ? 'bg-red-600/90 animate-pulse text-white' : 'bg-green-600/80 text-white'
+      }`}>
+        {gameRef.current?.waveActive ? '🌊 TSUNAMI WAVE! HIDE BEHIND SOMETHING!' : '🏁 Run forward! Find cover before the next wave!'}
       </div>
 
       {/* Area transition banner */}
