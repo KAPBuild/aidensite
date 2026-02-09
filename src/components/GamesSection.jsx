@@ -38,7 +38,7 @@ export default function GamesSection() {
           <GameCard
             emoji="🌊"
             title="Escape Tsunami"
-            description="Run through 6 emoji zones to escape the tsunami! Spin for galaxy rewards!"
+            description="Run through 9 emoji zones to escape the tsunami! Can you reach Godly?"
             onClick={() => setSelectedGame('escapetsunami')}
             color="from-cyan-600 to-blue-800"
           />
