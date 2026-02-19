@@ -354,13 +354,14 @@ export default function EscapeTsunami({ onBack }) {
           bMesh.position.set(ox, sz * 1.2, oz)
           bMesh.castShadow = true
           scene.add(bMesh)
-          // flat top slab for character
+          // flat top slab
           const topGeo = new THREE.BoxGeometry(sz * 0.9, sz * 0.3, sz * 0.9)
           const topMat = new THREE.MeshLambertMaterial({ color: 0x546E7A })
           const top = new THREE.Mesh(topGeo, topMat)
           top.position.set(ox, sz * 2.1, oz)
           scene.add(top)
-          hitR = sz * 1.5
+          // circle collision — matches sphere shape well
+          obstacles.push({ x: ox, z: oz, shape: 'circle', radius: sz * 1.25 })
 
         } else if (obsType === 'crate') {
           bodyColor = area.tier >= 6 ? zoneColor : 0x8D6E63
@@ -377,7 +378,8 @@ export default function EscapeTsunami({ onBack }) {
           const bandTop = new THREE.Mesh(bandH, bandMat)
           bandTop.position.set(ox, sz * 1.1, oz + sz * 1.1)
           scene.add(bandTop)
-          hitR = sz * 1.5
+          // box collision — matches cube shape exactly
+          obstacles.push({ x: ox, z: oz, shape: 'box', hw: sz * 1.1, hd: sz * 1.1 })
 
         } else if (obsType === 'wall') {
           bodyColor = area.tier >= 6 ? zoneColor : 0x90A4AE
@@ -395,7 +397,8 @@ export default function EscapeTsunami({ onBack }) {
             line.position.set(ox, sz * 0.6 + row * sz * 0.9, oz)
             scene.add(line)
           }
-          hitR = sz * 2
+          // box collision — tight fit to the wall slab
+          obstacles.push({ x: ox, z: oz, shape: 'box', hw: sz * 1.75, hd: sz * 0.5 })
 
         } else { // bunker
           bodyColor = area.tier >= 6 ? zoneColor : 0x546E7A
@@ -421,7 +424,8 @@ export default function EscapeTsunami({ onBack }) {
             sbMesh.position.set(ox + sb * sz * 2.5, sz * 0.3, oz)
             scene.add(sbMesh)
           }
-          hitR = sz * 2.5
+          // box collision — matches the body footprint
+          obstacles.push({ x: ox, z: oz, shape: 'box', hw: sz * 2.25, hd: sz * 1.25 })
         }
 
         // Small emoji badge on top of every obstacle
@@ -429,8 +433,6 @@ export default function EscapeTsunami({ onBack }) {
         const badgeSprite = createEmojiSprite(badge, 1.8)
         badgeSprite.position.set(ox, sz * 3 + 0.5, oz)
         scene.add(badgeSprite)
-
-        obstacles.push({ x: ox, z: oz, radius: hitR })
       }
 
       // Side decorations
@@ -514,17 +516,33 @@ export default function EscapeTsunami({ onBack }) {
             scene.add(bag)
           }
 
-          // Entrance arch emoji
-          const entranceSprite = createEmojiSprite('🛖', 2.2)
-          entranceSprite.position.set(shelterX, 4.2, shelterZ)
-          scene.add(entranceSprite)
+          // Green glowing ground disc — the "safe zone" marker players see clearly
+          const discGeo = new THREE.CircleGeometry(3.2, 32)
+          const discMat = new THREE.MeshBasicMaterial({ color: 0x00FF88, transparent: true, opacity: 0.28, side: THREE.DoubleSide })
+          const disc = new THREE.Mesh(discGeo, discMat)
+          disc.rotation.x = -Math.PI / 2
+          disc.position.set(shelterX, 0.08, shelterZ)
+          scene.add(disc)
 
-          // SAFE label sprite
-          const safeSprite = createEmojiSprite('🛡️', 1.5)
-          safeSprite.position.set(shelterX, 5.2, shelterZ)
+          // Outer ring outline
+          const ringGeo = new THREE.RingGeometry(3.0, 3.5, 32)
+          const ringMat = new THREE.MeshBasicMaterial({ color: 0x00FF55, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+          const ring = new THREE.Mesh(ringGeo, ringMat)
+          ring.rotation.x = -Math.PI / 2
+          ring.position.set(shelterX, 0.1, shelterZ)
+          scene.add(ring)
+
+          // Green point light casting glow on bunker
+          const shelterLight = new THREE.PointLight(0x00FF88, 1.2, 10)
+          shelterLight.position.set(shelterX, 4, shelterZ)
+          scene.add(shelterLight)
+
+          // SAFE ZONE floating label
+          const safeSprite = createEmojiSprite('🛡️', 2)
+          safeSprite.position.set(shelterX, 5.5, shelterZ)
           scene.add(safeSprite)
 
-          shelters.push({ x: shelterX, z: shelterZ, radius: 3 })
+          shelters.push({ x: shelterX, z: shelterZ, radius: 3.2 })
         }
       }
     })
@@ -819,18 +837,34 @@ export default function EscapeTsunami({ onBack }) {
       // Boundary clamp
       newX = Math.max(-10, Math.min(10, newX))
 
-      // Collision with obstacles
-      let blocked = false
+      // Collision with obstacles — circles use radial push, boxes use AABB
+      const PR = 0.7 // player collision radius
       for (const obs of game.obstacles) {
-        const dx = newX - obs.x
-        const dz = newZ - obs.z
-        const dist = Math.sqrt(dx * dx + dz * dz)
-        if (dist < obs.radius + 0.8) {
-          blocked = true
-          // Push player back
-          if (dist > 0) {
-            newX = obs.x + (dx / dist) * (obs.radius + 0.8)
-            newZ = obs.z + (dz / dist) * (obs.radius + 0.8)
+        if (obs.shape === 'box') {
+          const dx = newX - obs.x
+          const dz = newZ - obs.z
+          const ex = obs.hw + PR  // extended half-width including player
+          const ez = obs.hd + PR  // extended half-depth including player
+          if (Math.abs(dx) < ex && Math.abs(dz) < ez) {
+            // Resolve along the axis of least penetration
+            const penX = ex - Math.abs(dx)
+            const penZ = ez - Math.abs(dz)
+            if (penX < penZ) {
+              newX = obs.x + Math.sign(dx || 1) * ex
+            } else {
+              newZ = obs.z + Math.sign(dz || 1) * ez
+            }
+          }
+        } else {
+          // circle
+          const dx = newX - obs.x
+          const dz = newZ - obs.z
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          if (dist < obs.radius + PR) {
+            if (dist > 0) {
+              newX = obs.x + (dx / dist) * (obs.radius + PR)
+              newZ = obs.z + (dz / dist) * (obs.radius + PR)
+            }
           }
         }
       }
@@ -838,7 +872,8 @@ export default function EscapeTsunami({ onBack }) {
       game.player.position.x = newX
       game.player.position.z = newZ
 
-      // ─── Check if player is hiding behind a shelter ────
+      // ─── Check if player is inside a dedicated shelter (green zone) ────
+      // Only the marked shelter bunkers count — obstacles are purely nav blockers
       let playerHiding = false
       for (const shelter of game.shelters) {
         const dx = game.player.position.x - shelter.x
@@ -847,18 +882,6 @@ export default function EscapeTsunami({ onBack }) {
         if (dist < shelter.radius) {
           playerHiding = true
           break
-        }
-      }
-      // Also count being near an obstacle as hiding
-      if (!playerHiding) {
-        for (const obs of game.obstacles) {
-          const dx = game.player.position.x - obs.x
-          const dz = game.player.position.z - obs.z
-          const dist = Math.sqrt(dx * dx + dz * dz)
-          if (dist < obs.radius + 1.2) {
-            playerHiding = true
-            break
-          }
         }
       }
       setIsHiding(playerHiding)
@@ -1514,7 +1537,7 @@ export default function EscapeTsunami({ onBack }) {
             <ul className="text-sm space-y-1">
               <li>• Run forward (↑ or W) toward the finish</li>
               <li>• Tsunami waves come every few seconds!</li>
-              <li>• Hide behind 🛖 shelters or 🌳🪨 obstacles to survive</li>
+              <li>• Step into a 🟢 glowing green shelter zone to survive waves</li>
               <li>• Collect 💰 coins for upgrades</li>
               <li>• Higher zones = unique hazards + bigger rewards!</li>
               <li>• Reach the 🏁 finish to win the round!</li>
@@ -1901,9 +1924,9 @@ export default function EscapeTsunami({ onBack }) {
       <div className={`absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold z-20 pointer-events-none ${
         gameRef.current?.waveActive ? 'bg-red-600/90 animate-pulse text-white' : 'bg-green-600/80 text-white'
       }`}>
-        {gameRef.current?.waveActive ? '🌊 TSUNAMI WAVE! HIDE BEHIND SOMETHING!' :
-         hasWaveRadar && waveCountdown > 0 ? `📡 Next wave in ${waveCountdown}s — Find cover!` :
-         '🏁 Run forward! Find cover before the next wave!'}
+        {gameRef.current?.waveActive ? '🌊 WAVE! Get inside a 🟢 green shelter zone!' :
+         hasWaveRadar && waveCountdown > 0 ? `📡 Wave in ${waveCountdown}s — reach a 🟢 green zone!` :
+         '🏁 Run to the 🏁 finish! Hide in 🟢 green shelter zones when a wave hits!'}
       </div>
 
       {/* Zone goal */}
