@@ -8,7 +8,13 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cat:*)",
+      "Bash(wc:*)",
+      "Bash(git -C \"C:/Users/r7y23s6/Documents/aidensite\" status)",
+      "Bash(git -C \"C:/Users/r7y23s6/Documents/aidensite\" log --oneline -5)",
+      "Bash(git -C \"C:/Users/r7y23s6/Documents/aidensite\" add src/games/EscapeTsunami.jsx .claude/settings.local.json)",
+      "Bash(git -C \"C:/Users/r7y23s6/Documents/aidensite\" commit -m \"$\\(cat <<''EOF''\nFix game over screen, improve tsunami visuals, 3D obstacles, disasters, packs, and luck system\n\n- Game over screen: fixed layout with pinned Try Again button, clears earthquake shake on death\n- Tsunami: layered 3D geometry \\(4 water layers, foam chunks, spray spheres, turbulence streaks, sway animation\\)\n- Obstacles: replaced emoji sprites with 3D boulders, crates, concrete walls, and bunkers \\(zone-tinted\\)\n- Shelters: rebuilt as solid 3D bunkers with overhanging roofs and sandbag flanks\n- Wave mechanics: waves now spawn ahead of player and roll toward them \\(no more hits from behind\\)\n- Disasters: random earthquakes \\(camera shake + screen rumble\\) and lightning strikes between waves\n- Spin wheel: added 1.25x / 2x / 5x / 10x luck multipliers that boost rare item odds\n- Shop: added Starter Pack \\(1000c -> 500c + 1 galaxy box\\) and Pro Pack \\(10000c -> 5000c + 3 galaxy boxes\\)\n- Area transition: moved popup to compact upper-right corner toast\n- Gate beams: removed wide crossbeam, shortened pillars to stop blocking vision\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

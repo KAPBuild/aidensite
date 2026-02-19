@@ -53,6 +53,10 @@ const SPIN_WHEEL_ITEMS = [
   { name: '🪐 Galaxy Slap',   weight: 1,  type: 'galaxy_slap', action: 'galaxySlap' },
   { name: '🌀 Portal Skip',   weight: 3,  type: 'buff',    action: 'portalSkip' },
   { name: '💎 Rarity Boost',  weight: 2,  type: 'buff',    action: 'rarityBoost' },
+  { name: '🍀 1.25x Luck',   weight: 10, type: 'luck',    multiplier: 1.25 },
+  { name: '🍀 2x Luck',      weight: 6,  type: 'luck',    multiplier: 2 },
+  { name: '🍀 5x Luck',      weight: 3,  type: 'luck',    multiplier: 5 },
+  { name: '🍀 10x Luck',     weight: 1,  type: 'luck',    multiplier: 10 },
 ]
 
 const GALAXY_BLOCK_REWARDS = [
@@ -172,6 +176,11 @@ export default function EscapeTsunami({ onBack }) {
   const [currentZoneGoal, setCurrentZoneGoal] = useState('')
   const [lightningStrikes, setLightningStrikes] = useState([]) // for Divine zone
   const [rarityBoostTimer, setRarityBoostTimer] = useState(0)
+  const [luckMultiplier, setLuckMultiplier] = useState(1)
+  const [galaxyLuckyBoxes, setGalaxyLuckyBoxes] = useState(0)
+  const [earthquakeShake, setEarthquakeShake] = useState(false)
+  const [disasterWarning, setDisasterWarning] = useState('')
+  const [disasterLightningWarnings, setDisasterLightningWarnings] = useState([])
 
   // Mobile joystick state — use refs so touch handlers always have fresh values
   const joystickActiveRef = useRef(false)
@@ -188,6 +197,7 @@ export default function EscapeTsunami({ onBack }) {
   const hasShieldRechargeRef = useRef(hasShieldRecharge)
   const hasWaveRadarRef = useRef(hasWaveRadar)
   const milestonesRef = useRef(milestones)
+  const luckMultiplierRef = useRef(luckMultiplier)
 
   useEffect(() => { coinsRef.current = coins }, [coins])
   useEffect(() => { scoreRef.current = score }, [score])
@@ -197,6 +207,7 @@ export default function EscapeTsunami({ onBack }) {
   useEffect(() => { hasShieldRechargeRef.current = hasShieldRecharge }, [hasShieldRecharge])
   useEffect(() => { hasWaveRadarRef.current = hasWaveRadar }, [hasWaveRadar])
   useEffect(() => { milestonesRef.current = milestones }, [milestones])
+  useEffect(() => { luckMultiplierRef.current = luckMultiplier }, [luckMultiplier])
 
   // ─── CREATE 3D SCENE ──────────────────────────────
   const initScene = useCallback(() => {
@@ -285,34 +296,27 @@ export default function EscapeTsunami({ onBack }) {
 
       // ─── TRANSITION GATE at area entrance ─────
       const gateColor = area.style === 'secret' ? 0x6600cc : area.style === 'godly' ? 0xFFD700 : area.style === 'og' ? 0x00E676 : area.color
-      // Left pillar
-      const pillarGeo = new THREE.BoxGeometry(1.2, 8, 1.2)
+      // Left pillar (shorter — doesn't block view overhead)
+      const pillarGeo = new THREE.BoxGeometry(1.2, 5, 1.2)
       const pillarMat = new THREE.MeshLambertMaterial({ color: gateColor })
       const leftPillar = new THREE.Mesh(pillarGeo, pillarMat)
-      leftPillar.position.set(-10, 4, startZ)
+      leftPillar.position.set(-10, 2.5, startZ)
       leftPillar.castShadow = true
       scene.add(leftPillar)
       const rightPillar = new THREE.Mesh(pillarGeo, pillarMat.clone())
-      rightPillar.position.set(10, 4, startZ)
+      rightPillar.position.set(10, 2.5, startZ)
       rightPillar.castShadow = true
       scene.add(rightPillar)
-      // Top beam
-      const beamGeo = new THREE.BoxGeometry(22, 1.5, 1.2)
-      const beamMat = new THREE.MeshLambertMaterial({ color: gateColor })
-      const beam = new THREE.Mesh(beamGeo, beamMat)
-      beam.position.set(0, 8.5, startZ)
-      beam.castShadow = true
-      scene.add(beam)
-      // Area emoji on gate
-      const gateEmoji = createEmojiSprite(area.emoji, 3.5)
-      gateEmoji.position.set(0, 10.5, startZ)
-      scene.add(gateEmoji)
-      // Colored light strip under beam
-      const stripGeo = new THREE.BoxGeometry(20, 0.3, 0.3)
+      // Thin colored light strip at top of pillars (no wide beam overhead)
+      const stripGeo = new THREE.BoxGeometry(22, 0.3, 0.3)
       const stripMat = new THREE.MeshLambertMaterial({ color: gateColor, emissive: gateColor, emissiveIntensity: 0.8 })
       const strip = new THREE.Mesh(stripGeo, stripMat)
-      strip.position.set(0, 7.6, startZ)
+      strip.position.set(0, 5.2, startZ)
       scene.add(strip)
+      // Area emoji floating above pillars
+      const gateEmoji = createEmojiSprite(area.emoji, 3)
+      gateEmoji.position.set(0, 7, startZ)
+      scene.add(gateEmoji)
 
       // Emoji obstacles — each special area gets themed emojis
       let obstacleEmojis
@@ -327,13 +331,106 @@ export default function EscapeTsunami({ onBack }) {
       else if (area.style === 'forbidden') obstacleEmojis = ['🚫', '⛓️', '🔥', '💀', '☠️', '🩸', '👿', '🕳️']
       else obstacleEmojis = ['🌳', '🪨', '🏠', '🚗', '📦', '🗿', '🎪', '⛺']
       for (let j = 0; j < 3 + area.tier; j++) {
-        const emoji = obstacleEmojis[Math.floor(Math.random() * obstacleEmojis.length)]
-        const obs = createEmojiSprite(emoji, 2.5 + Math.random() * 1.5)
         const ox = (Math.random() - 0.5) * 18
         const oz = startZ - 5 - Math.random() * (CONFIG.AREA_LENGTH - 10)
-        obs.position.set(ox, 2, oz)
-        scene.add(obs)
-        obstacles.push({ x: ox, z: oz, radius: 1.5 })
+        const sz = 1.0 + Math.random() * 0.8 // size scalar
+
+        // Pick obstacle type by tier
+        const roll = Math.random()
+        let obsType
+        if (area.tier <= 2) obsType = roll < 0.55 ? 'boulder' : 'crate'
+        else if (area.tier <= 5) obsType = roll < 0.35 ? 'boulder' : roll < 0.7 ? 'wall' : 'crate'
+        else obsType = roll < 0.3 ? 'bunker' : roll < 0.65 ? 'wall' : 'boulder'
+
+        // Zone-tinted colours
+        const zoneColor = area.color
+        let bodyColor, accentColor, hitR
+
+        if (obsType === 'boulder') {
+          bodyColor = area.tier >= 6 ? zoneColor : 0x78909C
+          const bGeo = new THREE.SphereGeometry(sz * 1.2, 9, 9)
+          const bMat = new THREE.MeshLambertMaterial({ color: bodyColor })
+          const bMesh = new THREE.Mesh(bGeo, bMat)
+          bMesh.position.set(ox, sz * 1.2, oz)
+          bMesh.castShadow = true
+          scene.add(bMesh)
+          // flat top slab for character
+          const topGeo = new THREE.BoxGeometry(sz * 0.9, sz * 0.3, sz * 0.9)
+          const topMat = new THREE.MeshLambertMaterial({ color: 0x546E7A })
+          const top = new THREE.Mesh(topGeo, topMat)
+          top.position.set(ox, sz * 2.1, oz)
+          scene.add(top)
+          hitR = sz * 1.5
+
+        } else if (obsType === 'crate') {
+          bodyColor = area.tier >= 6 ? zoneColor : 0x8D6E63
+          accentColor = 0xA1887F
+          const cGeo = new THREE.BoxGeometry(sz * 2.2, sz * 2.2, sz * 2.2)
+          const cMat = new THREE.MeshLambertMaterial({ color: bodyColor })
+          const cMesh = new THREE.Mesh(cGeo, cMat)
+          cMesh.position.set(ox, sz * 1.1, oz)
+          cMesh.castShadow = true
+          scene.add(cMesh)
+          // Cross banding
+          const bandH = new THREE.BoxGeometry(sz * 2.25, sz * 0.25, sz * 0.2)
+          const bandMat = new THREE.MeshLambertMaterial({ color: accentColor })
+          const bandTop = new THREE.Mesh(bandH, bandMat)
+          bandTop.position.set(ox, sz * 1.1, oz + sz * 1.1)
+          scene.add(bandTop)
+          hitR = sz * 1.5
+
+        } else if (obsType === 'wall') {
+          bodyColor = area.tier >= 6 ? zoneColor : 0x90A4AE
+          const wGeo = new THREE.BoxGeometry(sz * 3.5, sz * 3, sz * 0.9)
+          const wMat = new THREE.MeshLambertMaterial({ color: bodyColor })
+          const wMesh = new THREE.Mesh(wGeo, wMat)
+          wMesh.position.set(ox, sz * 1.5, oz)
+          wMesh.castShadow = true
+          scene.add(wMesh)
+          // Brick lines
+          for (let row = 0; row < 3; row++) {
+            const lineGeo = new THREE.BoxGeometry(sz * 3.55, 0.1, sz * 0.95)
+            const lineMat = new THREE.MeshLambertMaterial({ color: 0x607D8B })
+            const line = new THREE.Mesh(lineGeo, lineMat)
+            line.position.set(ox, sz * 0.6 + row * sz * 0.9, oz)
+            scene.add(line)
+          }
+          hitR = sz * 2
+
+        } else { // bunker
+          bodyColor = area.tier >= 6 ? zoneColor : 0x546E7A
+          accentColor = 0x37474F
+          // Main body
+          const bkGeo = new THREE.BoxGeometry(sz * 4.5, sz * 2, sz * 2.5)
+          const bkMat = new THREE.MeshLambertMaterial({ color: bodyColor })
+          const bkMesh = new THREE.Mesh(bkGeo, bkMat)
+          bkMesh.position.set(ox, sz * 1, oz)
+          bkMesh.castShadow = true
+          scene.add(bkMesh)
+          // Overhanging roof
+          const rGeo = new THREE.BoxGeometry(sz * 5, sz * 0.4, sz * 3)
+          const rMat = new THREE.MeshLambertMaterial({ color: accentColor })
+          const rMesh = new THREE.Mesh(rGeo, rMat)
+          rMesh.position.set(ox, sz * 2.2, oz)
+          scene.add(rMesh)
+          // Side sandbags
+          for (let sb = -1; sb <= 1; sb += 2) {
+            const sbGeo = new THREE.BoxGeometry(sz * 0.8, sz * 0.6, sz * 2.5)
+            const sbMat = new THREE.MeshLambertMaterial({ color: 0x6D4C41 })
+            const sbMesh = new THREE.Mesh(sbGeo, sbMat)
+            sbMesh.position.set(ox + sb * sz * 2.5, sz * 0.3, oz)
+            scene.add(sbMesh)
+          }
+          hitR = sz * 2.5
+        }
+
+        // Small emoji badge on top of every obstacle
+        const badge = obstacleEmojis[Math.floor(Math.random() * obstacleEmojis.length)]
+        const badgeSprite = createEmojiSprite(badge, 1.8)
+        badgeSprite.position.set(ox, sz * 3 + 0.5, oz)
+        scene.add(badgeSprite)
+
+        obstacles.push({ x: ox, z: oz, radius: hitR })
       }
 
       // Side decorations
@@ -386,16 +483,48 @@ export default function EscapeTsunami({ onBack }) {
         gap.receiveShadow = true
         scene.add(gap)
 
-        // Shelter emoji huts in the gap
+        // Shelter 3D bunkers in the gap
         for (let s = 0; s < 3; s++) {
           const shelterX = -7 + s * 7
           const shelterZ = gapZ - CONFIG.HIDING_GAP / 2
 
-          const hut = createEmojiSprite('🛖', 4)
-          hut.position.set(shelterX, 2.5, shelterZ)
-          scene.add(hut)
+          // Main bunker body
+          const sBodyGeo = new THREE.BoxGeometry(5, 3.2, 4.5)
+          const sBodyMat = new THREE.MeshLambertMaterial({ color: 0x4E342E })
+          const sBody = new THREE.Mesh(sBodyGeo, sBodyMat)
+          sBody.position.set(shelterX, 1.6, shelterZ)
+          sBody.castShadow = true
+          sBody.receiveShadow = true
+          scene.add(sBody)
 
-          shelters.push({ x: shelterX, z: shelterZ, radius: 2.5 })
+          // Wide overhanging roof
+          const sRoofGeo = new THREE.BoxGeometry(6.2, 0.5, 5.5)
+          const sRoofMat = new THREE.MeshLambertMaterial({ color: 0x3E2723 })
+          const sRoof = new THREE.Mesh(sRoofGeo, sRoofMat)
+          sRoof.position.set(shelterX, 3.45, shelterZ)
+          sRoof.castShadow = true
+          scene.add(sRoof)
+
+          // Sandbag base around shelter
+          for (let side = -1; side <= 1; side += 2) {
+            const bagGeo = new THREE.BoxGeometry(0.9, 0.7, 4.5)
+            const bagMat = new THREE.MeshLambertMaterial({ color: 0x795548 })
+            const bag = new THREE.Mesh(bagGeo, bagMat)
+            bag.position.set(shelterX + side * 2.9, 0.35, shelterZ)
+            scene.add(bag)
+          }
+
+          // Entrance arch emoji
+          const entranceSprite = createEmojiSprite('🛖', 2.2)
+          entranceSprite.position.set(shelterX, 4.2, shelterZ)
+          scene.add(entranceSprite)
+
+          // SAFE label sprite
+          const safeSprite = createEmojiSprite('🛡️', 1.5)
+          safeSprite.position.set(shelterX, 5.2, shelterZ)
+          scene.add(safeSprite)
+
+          shelters.push({ x: shelterX, z: shelterZ, radius: 3 })
         }
       }
     })
@@ -416,34 +545,103 @@ export default function EscapeTsunami({ onBack }) {
     playerEmoji.position.set(0, 1.5, 2)
     scene.add(playerEmoji)
 
-    // ─── TSUNAMI WAVE (reusable — hidden until triggered) ─────
+    // ─── TSUNAMI WAVE — layered, detailed ─────
     const tsunamiGroup = new THREE.Group()
 
-    // Main water wall — tall and wide so you can't miss it
-    const tsunamiGeo = new THREE.BoxGeometry(40, 18, 6)
+    // Layer 1: Deep dark base (ocean floor surge)
+    const baseGeo = new THREE.BoxGeometry(44, 8, 5)
     const tsunamiMat = new THREE.MeshPhongMaterial({
-      color: 0x0288D1,
+      color: 0x0D47A1,
       transparent: true,
-      opacity: 0.8,
-      emissive: 0x01579B,
-      emissiveIntensity: 0.4,
+      opacity: 0.98,
+      emissive: 0x0a2a6e,
+      emissiveIntensity: 0.35,
     })
-    const tsunamiMesh = new THREE.Mesh(tsunamiGeo, tsunamiMat)
-    tsunamiMesh.position.y = 9
+    const tsunamiMesh = new THREE.Mesh(baseGeo, tsunamiMat)
+    tsunamiMesh.position.y = 4
     tsunamiGroup.add(tsunamiMesh)
 
-    // Big wave emojis across the front (facing -z direction, the way the wave chases)
+    // Layer 2: Mid water body (bright blue)
+    const midGeo = new THREE.BoxGeometry(43, 10, 5.5)
+    const midMat = new THREE.MeshPhongMaterial({
+      color: 0x0277BD,
+      transparent: true,
+      opacity: 0.92,
+      emissive: 0x01579B,
+      emissiveIntensity: 0.25,
+    })
+    const midMesh = new THREE.Mesh(midGeo, midMat)
+    midMesh.position.y = 11
+    tsunamiGroup.add(midMesh)
+
+    // Layer 3: Upper crest body (cyan, tilted slightly forward)
+    const crestGeo = new THREE.BoxGeometry(42, 7, 6.5)
+    const crestMat = new THREE.MeshPhongMaterial({
+      color: 0x0097A7,
+      transparent: true,
+      opacity: 0.88,
+      emissive: 0x006064,
+      emissiveIntensity: 0.3,
+    })
+    const crestMesh = new THREE.Mesh(crestGeo, crestMat)
+    crestMesh.position.set(0, 19, 1.5)
+    crestMesh.rotation.x = -0.15 // curl forward
+    tsunamiGroup.add(crestMesh)
+
+    // Layer 4: Foamy white crest cap
+    const foamCapGeo = new THREE.BoxGeometry(43, 2.5, 8)
+    const foamCapMat = new THREE.MeshLambertMaterial({ color: 0xDCEEFF, transparent: true, opacity: 0.85 })
+    const foamCap = new THREE.Mesh(foamCapGeo, foamCapMat)
+    foamCap.position.y = 23.5
+    tsunamiGroup.add(foamCap)
+
+    // Irregular foam chunks along the crest
+    for (let fc = 0; fc < 10; fc++) {
+      const w = 2.5 + Math.random() * 3
+      const h = 1.2 + Math.random() * 1.5
+      const chunkGeo = new THREE.BoxGeometry(w, h, 4 + Math.random() * 3)
+      const chunkMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.75 + Math.random() * 0.2 })
+      const chunk = new THREE.Mesh(chunkGeo, chunkMat)
+      chunk.position.set(-20 + fc * 4.5, 23 + Math.random() * 2.5, 2 + Math.random() * 2)
+      chunk.rotation.z = (Math.random() - 0.5) * 0.4
+      tsunamiGroup.add(chunk)
+    }
+
+    // Spray / mist droplets at the crest
+    for (let sp = 0; sp < 18; sp++) {
+      const r = 0.25 + Math.random() * 0.55
+      const sprayGeo = new THREE.SphereGeometry(r, 5, 5)
+      const sprayMat = new THREE.MeshLambertMaterial({ color: 0xB3E5FC, transparent: true, opacity: 0.5 + Math.random() * 0.35 })
+      const spray = new THREE.Mesh(sprayGeo, sprayMat)
+      spray.position.set(
+        -20 + Math.random() * 40,
+        21 + Math.random() * 6,
+        2.5 + Math.random() * 4
+      )
+      tsunamiGroup.add(spray)
+    }
+
+    // Internal turbulence streaks (dark swirls inside the body)
+    for (let sw = 0; sw < 6; sw++) {
+      const swirlGeo = new THREE.BoxGeometry(1, 5 + Math.random() * 4, 5)
+      const swirlMat = new THREE.MeshLambertMaterial({ color: 0x01337a, transparent: true, opacity: 0.4 })
+      const swirl = new THREE.Mesh(swirlGeo, swirlMat)
+      swirl.position.set(-15 + sw * 6, 7 + Math.random() * 5, 0)
+      swirl.rotation.z = (Math.random() - 0.5) * 0.5
+      tsunamiGroup.add(swirl)
+    }
+
+    // Wave emojis — two rows on the front face
     for (let i = 0; i < 7; i++) {
-      const waveEmoji = createEmojiSprite('🌊', 5)
-      waveEmoji.position.set(-12 + i * 4, 14, -3.5)
+      const waveEmoji = createEmojiSprite('🌊', 4.5)
+      waveEmoji.position.set(-12 + i * 4, 13, 3.8)
       tsunamiGroup.add(waveEmoji)
     }
-    // Foam layer on top
-    const foamGeo = new THREE.BoxGeometry(40, 3, 6)
-    const foamMat = new THREE.MeshLambertMaterial({ color: 0xB3E5FC, transparent: true, opacity: 0.7 })
-    const foam = new THREE.Mesh(foamGeo, foamMat)
-    foam.position.y = 19
-    tsunamiGroup.add(foam)
+    for (let i = 0; i < 5; i++) {
+      const topEmoji = createEmojiSprite('💧', 2.8)
+      topEmoji.position.set(-8 + i * 4, 20, 4)
+      tsunamiGroup.add(topEmoji)
+    }
 
     tsunamiGroup.visible = false
     scene.add(tsunamiGroup)
@@ -487,6 +685,11 @@ export default function EscapeTsunami({ onBack }) {
       rarityBoostActive: false,
       rarityBoostTimer: 0,
       shieldRechargeUsed: false,
+      // Disasters
+      disasterTimer: 25000 + Math.random() * 20000,
+      earthquakeTimer: 0,
+      earthquakeIntensity: 0,
+      disasterLightningSpots: [],
     }
 
     return { scene, camera, renderer }
@@ -674,8 +877,8 @@ export default function EscapeTsunami({ onBack }) {
           // Spawn a wave!
           game.waveActive = true
           game.wavesSpawned++
-          // Wave spawns BEHIND the player and chases them forward
-          game.tsunami.position.z = game.player.position.z + 80
+          // Wave spawns AHEAD of the player (in the direction they run) and rolls toward them
+          game.tsunami.position.z = game.player.position.z - 120
           game.tsunami.position.x = 0
           game.tsunami.visible = true
           // Pick wave type — gets harder as more waves spawn and in higher zones
@@ -709,16 +912,17 @@ export default function EscapeTsunami({ onBack }) {
           if (hasWaveRadarRef.current) setWaveCountdown(0)
         }
       } else {
-        // Wave is active — move it toward the player (decreasing z, chasing forward)
+        // Wave is active — move in +z direction (rolling toward player from ahead)
         const spd = game.freezeTimer > 0 ? game.waveSpeed * 0.3 : game.waveSpeed
-        game.tsunami.position.z -= spd * dt
-        // Wave bobbing animation
-        game.tsunami.position.y = Math.sin(time * 0.005) * 1.5
+        game.tsunami.position.z += spd * dt
+        // Wave bobbing + sway animation
+        game.tsunami.position.y = Math.sin(time * 0.005) * 1.8
+        game.tsunami.rotation.z = Math.sin(time * 0.003) * 0.025
 
-        // Check if wave has reached the player
-        const waveFrontZ = game.tsunami.position.z - 3
+        // Check if wave front (+z face) has reached the player
+        const waveFrontZ = game.tsunami.position.z + 3
         const playerZ = game.player.position.z
-        if (waveFrontZ <= playerZ + 1 && waveFrontZ >= playerZ - 4) {
+        if (waveFrontZ >= playerZ - 1 && waveFrontZ <= playerZ + 8) {
           // Wave is sweeping through player position
           if (playerHiding) {
             game.zoneWavesSurvived++
@@ -757,6 +961,8 @@ export default function EscapeTsunami({ onBack }) {
             localStorage.setItem('escapeTsunamiMilestones', JSON.stringify(m))
             setMilestones(m)
 
+            setEarthquakeShake(false)
+            setDisasterWarning('')
             setDamageFlash(true)
             setTimeout(() => setDamageFlash(false), 300)
             setGameState('gameover')
@@ -768,8 +974,8 @@ export default function EscapeTsunami({ onBack }) {
           game.waveTimer = game.waveInterval
         }
 
-        // If wave passed way beyond player (went too far forward), reset
-        if (game.tsunami.position.z < game.player.position.z - 30) {
+        // If wave rolled past the player (moved too far in +z past player), reset
+        if (game.tsunami.position.z > game.player.position.z + 35) {
           game.waveActive = false
           game.tsunami.visible = false
           game.waveTimer = game.waveInterval
@@ -886,6 +1092,8 @@ export default function EscapeTsunami({ onBack }) {
                   localStorage.setItem('escapeTsunamiHighScore', finalScore.toString())
                   setHighScore(finalScore)
                 }
+                setEarthquakeShake(false)
+                setDisasterWarning('')
                 setDamageFlash(true)
                 setTimeout(() => setDamageFlash(false), 300)
                 setGameState('gameover')
@@ -909,6 +1117,79 @@ export default function EscapeTsunami({ onBack }) {
           game.lightningSpots = []
           setLightningStrikes([])
         }
+      }
+
+      // ─── Disasters (Earthquake + Lightning) ──────
+      game.disasterTimer -= dt * 16.67
+      if (game.disasterTimer <= 0 && !game.waveActive) {
+        game.disasterTimer = 18000 + Math.random() * 22000
+        const pick = Math.random()
+        if (pick < 0.5) {
+          // ── Earthquake ──
+          game.earthquakeTimer = 3500
+          game.earthquakeIntensity = 1.8
+          setEarthquakeShake(true)
+          setDisasterWarning('🌍 EARTHQUAKE! Hold on!')
+          setTimeout(() => { setDisasterWarning(''); setEarthquakeShake(false) }, 4000)
+        } else {
+          // ── Lightning Strike ──
+          const count = 2 + Math.floor(Math.random() * 3)
+          const spots = []
+          for (let si = 0; si < count; si++) {
+            spots.push({
+              x: game.player.position.x + (Math.random() - 0.5) * 18,
+              z: game.player.position.z - Math.random() * 25,
+              timer: 2500,
+            })
+          }
+          game.disasterLightningSpots = spots
+          setDisasterLightningWarnings(spots.map(s => ({ x: s.x, z: s.z })))
+          setDisasterWarning('⚡ LIGHTNING INCOMING! Move!')
+          setTimeout(() => setDisasterWarning(''), 2200)
+        }
+      }
+
+      // Earthquake camera shake
+      if (game.earthquakeTimer > 0) {
+        game.earthquakeTimer -= dt * 16.67
+        const shake = (game.earthquakeTimer / 3500) * game.earthquakeIntensity
+        camera.position.x += (Math.random() - 0.5) * shake * 2.5
+        camera.position.y += (Math.random() - 0.5) * shake * 1.2
+        camera.position.z += (Math.random() - 0.5) * shake
+      }
+
+      // Disaster lightning resolution
+      if (game.disasterLightningSpots.length > 0) {
+        for (const spot of game.disasterLightningSpots) {
+          spot.timer -= dt * 16.67
+          if (spot.timer <= 0 && spot.timer > -200) {
+            const dx = game.player.position.x - spot.x
+            const dz = game.player.position.z - spot.z
+            if (Math.sqrt(dx * dx + dz * dz) < 2.5) {
+              if (hasShieldRef.current) {
+                setHasShield(false)
+                setMessage('🛡️ Shield blocked the lightning!')
+                setTimeout(() => setMessage(''), 1500)
+              } else if (!game.galaxySlapActive) {
+                const finalScore = scoreRef.current
+                const savedHigh = parseInt(localStorage.getItem('escapeTsunamiHighScore') || '0')
+                if (finalScore > savedHigh) {
+                  localStorage.setItem('escapeTsunamiHighScore', finalScore.toString())
+                  setHighScore(finalScore)
+                }
+                setEarthquakeShake(false)
+                setDisasterWarning('')
+                setDamageFlash(true)
+                setTimeout(() => setDamageFlash(false), 300)
+                setGameState('gameover')
+                return
+              }
+            }
+            spot.timer = -999
+          }
+        }
+        game.disasterLightningSpots = game.disasterLightningSpots.filter(s => s.timer > -200)
+        if (game.disasterLightningSpots.length === 0) setDisasterLightningWarnings([])
       }
 
       // ─── Score ─────
@@ -1087,11 +1368,19 @@ export default function EscapeTsunami({ onBack }) {
     setSpinResult(null)
     setGalaxyBlockReward(null)
 
-    const totalWeight = SPIN_WHEEL_ITEMS.reduce((a, b) => a + b.weight, 0)
+    // Apply luck: rarer items (lower weight) get a bigger boost
+    const luck = luckMultiplierRef.current
+    const getAdjustedWeight = (item) => {
+      if (luck <= 1) return item.weight
+      if (item.weight <= 2) return item.weight * luck * 2
+      if (item.weight <= 5) return item.weight * luck
+      return item.weight
+    }
+    const totalWeight = SPIN_WHEEL_ITEMS.reduce((a, b) => a + getAdjustedWeight(b), 0)
     let r = Math.random() * totalWeight
     let chosen = SPIN_WHEEL_ITEMS[0]
     for (const item of SPIN_WHEEL_ITEMS) {
-      r -= item.weight
+      r -= getAdjustedWeight(item)
       if (r <= 0) { chosen = item; break }
     }
 
@@ -1149,7 +1438,35 @@ export default function EscapeTsunami({ onBack }) {
         gameRef.current.galaxySlapActive = true
         gameRef.current.galaxySlapTimer = 30000
         break
+      case 'luck':
+        setLuckMultiplier(item.multiplier)
+        break
     }
+  }
+
+  // ─── GALAXY LUCKY BOX ──────────────────
+  const openGalaxyLuckyBox = () => {
+    if (galaxyLuckyBoxes <= 0) return
+    setGalaxyLuckyBoxes(prev => prev - 1)
+    const reward = GALAXY_BLOCK_REWARDS[Math.floor(Math.random() * GALAXY_BLOCK_REWARDS.length)]
+    setGalaxyBlockReward(reward)
+    setCoins(prev => prev + 500)
+    if (!gameRef.current) gameRef.current = { speedBoostTimer: 0, magnetTimer: 0, freezeTimer: 0, doubleScoreTimer: 0, galaxySlapActive: false, galaxySlapTimer: 0 }
+    gameRef.current.speedBoostTimer = 30000
+    gameRef.current.doubleScoreTimer = 30000
+    setHasShield(true)
+  }
+
+  const buyStarterPack = () => {
+    if (coins < 1000) return
+    setCoins(prev => prev - 1000 + 500) // pay 1000, get 500 coins back = net -500
+    setGalaxyLuckyBoxes(prev => prev + 1)
+  }
+
+  const buyProPack = () => {
+    if (coins < 10000) return
+    setCoins(prev => prev - 10000 + 5000) // pay 10000, get 5000 back = net -5000
+    setGalaxyLuckyBoxes(prev => prev + 3)
   }
 
   // ─── SHOP ──────────────────────────────
@@ -1341,6 +1658,51 @@ export default function EscapeTsunami({ onBack }) {
               📡 Wave Radar — OWNED
             </div>
           )}
+
+          {/* ─── PACKS ─── */}
+          <div className="border-t border-white/20 pt-3 mt-1">
+            <p className="text-yellow-300 font-bold text-sm mb-2">🎁 Value Packs</p>
+
+            <button
+              onClick={buyStarterPack}
+              disabled={coins < 1000}
+              className={`w-full p-4 rounded-xl text-left transition-all mb-2 ${
+                coins >= 1000 ? 'bg-gradient-to-r from-cyan-600/40 to-blue-600/40 hover:from-cyan-500/50 border border-cyan-400/40' : 'bg-white/5 opacity-50'
+              }`}
+            >
+              <div className="text-xl mb-1">🌟 Starter Pack</div>
+              <div className="text-white font-bold text-sm">+500 Coins &amp; 1 Galaxy Lucky Box</div>
+              <div className="text-yellow-300 font-bold text-sm">Cost: 1,000 coins</div>
+            </button>
+
+            <button
+              onClick={buyProPack}
+              disabled={coins < 10000}
+              className={`w-full p-4 rounded-xl text-left transition-all ${
+                coins >= 10000 ? 'bg-gradient-to-r from-purple-600/40 to-pink-600/40 hover:from-purple-500/50 border border-purple-400/40' : 'bg-white/5 opacity-50'
+              }`}
+            >
+              <div className="text-xl mb-1">💎 Pro Pack</div>
+              <div className="text-white font-bold text-sm">+5,000 Coins &amp; 3 Galaxy Lucky Boxes</div>
+              <div className="text-yellow-300 font-bold text-sm">Cost: 10,000 coins</div>
+            </button>
+          </div>
+
+          {/* ─── GALAXY LUCKY BOXES ─── */}
+          {galaxyLuckyBoxes > 0 && (
+            <div className="border-t border-white/20 pt-3 mt-1">
+              <button
+                onClick={openGalaxyLuckyBox}
+                className="w-full p-4 rounded-xl text-left bg-gradient-to-r from-purple-700/60 to-pink-700/60 hover:from-purple-600/70 border border-purple-300/40 transition-all"
+              >
+                <div className="text-xl mb-1">📦 Open Galaxy Lucky Box</div>
+                <div className="text-white font-bold text-sm">You have {galaxyLuckyBoxes} box{galaxyLuckyBoxes > 1 ? 'es' : ''} — Guaranteed premium reward!</div>
+              </button>
+              {galaxyBlockReward && (
+                <div className="mt-2 text-center text-cyan-300 font-bold text-sm animate-pulse">{galaxyBlockReward}</div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4 flex-wrap justify-center">
@@ -1367,9 +1729,12 @@ export default function EscapeTsunami({ onBack }) {
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex flex-col items-center justify-center p-4">
         <h1 className="text-4xl font-black text-white mb-2">🎡 Spin Wheel</h1>
         <p className="text-yellow-300 text-xl font-bold mb-1">💰 {coins} Coins</p>
-        <p className="text-blue-300 font-bold mb-4">
+        <p className="text-blue-300 font-bold mb-1">
           {freeSpins > 0 ? `${freeSpins} Free Spin(s)!` : 'Cost: 50 coins'}
         </p>
+        {luckMultiplier > 1 && (
+          <p className="text-green-300 font-bold mb-3 animate-pulse">🍀 {luckMultiplier}x Luck Active!</p>
+        )}
 
         {/* Simple wheel display */}
         <div className="relative mb-6">
@@ -1425,31 +1790,38 @@ export default function EscapeTsunami({ onBack }) {
   if (gameState === 'gameover') {
     const areaColor = AREAS.find(a => a.name === currentArea)?.color || 0xffffff
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-gray-900 flex flex-col items-center justify-center p-4">
-        <div className="text-8xl mb-4">🌊💀</div>
-        <h1 className="text-5xl font-black text-red-400 mb-4">WASHED AWAY!</h1>
-        <div className="bg-white/10 rounded-xl p-6 mb-4 text-center">
-          <p className="text-white text-2xl font-bold mb-2">Score: {score}</p>
-          <p className="text-yellow-300 text-xl font-bold mb-2">💰 {coins} Coins</p>
-          <p className="font-bold" style={{ color: `#${areaColor.toString(16).padStart(6, '0')}` }}>
-            Reached: {AREAS.find(a => a.name === currentArea)?.emoji} {currentArea}
-          </p>
-          <p className="text-gray-300 text-sm mt-1">Highest Zone Ever: {AREAS[milestones.highestZone]?.emoji} {AREAS[milestones.highestZone]?.name}</p>
-          {score >= highScore && score > 0 && (
-            <p className="text-yellow-400 text-xl font-black mt-2 animate-pulse">NEW HIGH SCORE!</p>
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-950 via-red-950 to-gray-950 flex flex-col overflow-hidden">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto flex flex-col items-center px-4 pt-6 pb-4">
+          <div className="text-6xl mb-2">🌊💀</div>
+          <h1 className="text-4xl font-black text-red-400 mb-3">WASHED AWAY!</h1>
+
+          <div className="bg-white/10 rounded-xl px-6 py-4 mb-3 text-center w-full max-w-sm">
+            <p className="text-white text-2xl font-bold mb-1">Score: {score}</p>
+            <p className="text-yellow-300 text-lg font-bold mb-1">💰 {coins} Coins</p>
+            <p className="font-bold text-sm" style={{ color: `#${areaColor.toString(16).padStart(6, '0')}` }}>
+              Reached: {AREAS.find(a => a.name === currentArea)?.emoji} {currentArea}
+            </p>
+            <p className="text-gray-300 text-xs mt-1">Best Zone: {AREAS[milestones.highestZone]?.emoji} {AREAS[milestones.highestZone]?.name}</p>
+            {score >= highScore && score > 0 && (
+              <p className="text-yellow-400 text-lg font-black mt-1 animate-pulse">NEW HIGH SCORE!</p>
+            )}
+          </div>
+
+          {milestones.badges && milestones.badges.length > 0 && (
+            <div className="bg-white/10 rounded-xl px-4 py-3 mb-3 text-center w-full max-w-sm">
+              <p className="text-yellow-300 font-bold text-xs mb-2">🏅 Badges:</p>
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                {milestones.badges.map((b, i) => (
+                  <span key={i} className="bg-white/10 rounded-lg px-2 py-0.5 text-white text-xs font-bold">{b}</span>
+                ))}
+              </div>
+            </div>
           )}
         </div>
-        {milestones.badges && milestones.badges.length > 0 && (
-          <div className="bg-white/10 rounded-xl p-4 mb-4 text-center max-w-sm">
-            <p className="text-yellow-300 font-bold text-sm mb-2">🏅 Your Badges:</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {milestones.badges.map((b, i) => (
-                <span key={i} className="bg-white/10 rounded-lg px-2 py-1 text-white text-xs font-bold">{b}</span>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="flex gap-4">
+
+        {/* Buttons always pinned at bottom */}
+        <div className="flex-shrink-0 flex gap-3 justify-center px-4 py-4 bg-gray-950/80 backdrop-blur-sm border-t border-white/10">
           <button
             onClick={() => {
               setRoundNum(1)
@@ -1459,13 +1831,19 @@ export default function EscapeTsunami({ onBack }) {
               setHasShield(false)
               setHasShieldRecharge(false)
               setHasWaveRadar(false)
+              setLuckMultiplier(1)
+              setGalaxyLuckyBoxes(0)
+              setGalaxyBlockReward(null)
               startGame()
             }}
-            className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white px-8 py-4 rounded-xl font-black text-xl shadow-2xl hover:scale-105 transition-all"
+            className="flex-1 max-w-xs bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-4 rounded-xl font-black text-xl shadow-2xl active:scale-95 transition-all"
           >
             🔄 Try Again
           </button>
-          <button onClick={onBack} className="bg-white/20 text-white px-8 py-4 rounded-xl font-bold text-xl">
+          <button
+            onClick={onBack}
+            className="bg-white/20 hover:bg-white/30 text-white px-6 py-4 rounded-xl font-bold text-lg"
+          >
             ← Back
           </button>
         </div>
@@ -1475,8 +1853,25 @@ export default function EscapeTsunami({ onBack }) {
 
   // PLAYING
   return (
-    <div className="w-full h-screen relative overflow-hidden bg-black touch-none">
+    <div
+      className="w-full h-screen relative overflow-hidden bg-black touch-none"
+      style={earthquakeShake ? { animation: 'earthquakeShake 0.1s infinite' } : undefined}
+    >
+      {/* Earthquake CSS keyframes injected inline */}
+      {earthquakeShake && (
+        <style>{`
+          @keyframes earthquakeShake {
+            0%   { transform: translate(0,0) rotate(0deg); }
+            20%  { transform: translate(-4px, 3px) rotate(-0.5deg); }
+            40%  { transform: translate(4px, -3px) rotate(0.5deg); }
+            60%  { transform: translate(-3px, 4px) rotate(-0.3deg); }
+            80%  { transform: translate(3px, -2px) rotate(0.4deg); }
+            100% { transform: translate(0,0) rotate(0deg); }
+          }
+        `}</style>
+      )}
       {damageFlash && <div className="absolute inset-0 bg-red-500/50 z-30 pointer-events-none" />}
+      {earthquakeShake && <div className="absolute inset-0 bg-yellow-900/20 z-29 pointer-events-none" />}
 
       <div ref={containerRef} className="w-full h-full" />
 
@@ -1498,6 +1893,7 @@ export default function EscapeTsunami({ onBack }) {
           {isHiding && <div className="text-yellow-300 font-bold animate-pulse">🛖 HIDING!</div>}
           {gameRef.current?.galaxySlapActive && <div className="text-purple-300 font-bold">🪐 Galaxy Slap!</div>}
           {gameRef.current?.rarityBoostActive && <div className="text-pink-300 font-bold">💎 2x Coins!</div>}
+          {luckMultiplier > 1 && <div className="text-green-300 font-bold text-xs">🍀 {luckMultiplier}x Luck</div>}
         </div>
       </div>
 
@@ -1517,41 +1913,56 @@ export default function EscapeTsunami({ onBack }) {
         </div>
       )}
 
-      {/* Lightning strike warnings */}
+      {/* Zone lightning strike warnings */}
       {lightningStrikes.length > 0 && (
         <div className="absolute top-28 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold z-20 pointer-events-none bg-yellow-500/90 animate-pulse text-black">
           ⚡ LIGHTNING INCOMING! MOVE!
         </div>
       )}
 
-      {/* Area transition banner */}
+      {/* Disaster warning banner */}
+      {disasterWarning && (
+        <div className={`absolute top-36 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl font-black text-lg z-25 pointer-events-none animate-pulse text-white shadow-2xl ${
+          disasterWarning.startsWith('🌍') ? 'bg-orange-700/95' : 'bg-yellow-600/95'
+        }`}>
+          {disasterWarning}
+        </div>
+      )}
+
+      {/* Disaster lightning indicators */}
+      {disasterLightningWarnings.length > 0 && (
+        <div className="absolute top-44 left-1/2 -translate-x-1/2 flex gap-2 z-20 pointer-events-none">
+          {disasterLightningWarnings.map((_, i) => (
+            <span key={i} className="text-2xl animate-bounce">⚡</span>
+          ))}
+        </div>
+      )}
+
+      {/* Area transition — compact upper-right corner toast */}
       {areaTransition && (
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-30 pointer-events-none text-center animate-bounce">
-          <div className="bg-black/80 backdrop-blur-sm rounded-2xl px-10 py-6 border-4" style={{ borderColor: `#${areaTransition.color.toString(16).padStart(6, '0')}` }}>
-            <div className="text-6xl mb-2">{areaTransition.emoji}</div>
-            <div className="text-3xl font-black text-white">
-              {areaTransition.name === 'Secret' ? '👁️ SECRET ZONE' :
-               areaTransition.name === 'Godly' ? '👑 GODLY ZONE' :
-               areaTransition.name === 'OG' ? '🏆 OG ZONE' :
-               areaTransition.name === 'Exclusive' ? '🎀 EXCLUSIVE ZONE' :
-               areaTransition.name === 'Prismatic' ? '🌈 PRISMATIC ZONE' :
-               areaTransition.name === 'Transcendent' ? '🕊️ TRANSCENDENT ZONE' :
-               areaTransition.name === 'Celestial' ? '🔮 CELESTIAL ZONE' :
-               areaTransition.name === 'Divine' ? '⛩️ DIVINE ZONE' :
-               areaTransition.name === 'Forbidden' ? '🚫 FORBIDDEN ZONE' :
-               `${areaTransition.name} Area`}
-            </div>
-            <div className="text-sm mt-1" style={{ color: `#${areaTransition.color.toString(16).padStart(6, '0')}` }}>
-              {areaTransition.name === 'Secret' ? 'You found the secret...' :
-               areaTransition.name === 'Godly' ? 'ONLY THE WORTHY SURVIVE' :
-               areaTransition.name === 'OG' ? 'Respect the originals' :
-               areaTransition.name === 'Exclusive' ? 'VIP access only' :
-               areaTransition.name === 'Prismatic' ? 'Reality bends around you' :
-               areaTransition.name === 'Transcendent' ? 'Beyond mortal limits' :
-               areaTransition.name === 'Celestial' ? 'The cosmos trembles' :
-               areaTransition.name === 'Divine' ? 'Touched by the gods' :
-               areaTransition.name === 'Forbidden' ? 'YOU WERE WARNED' :
-               'Keep running!'}
+        <div className="absolute top-16 right-2 z-30 pointer-events-none">
+          <div className="bg-black/85 backdrop-blur-sm rounded-xl px-3 py-2 border-l-4 flex items-center gap-2 shadow-xl"
+            style={{ borderColor: `#${areaTransition.color.toString(16).padStart(6, '0')}` }}>
+            <span className="text-3xl">{areaTransition.emoji}</span>
+            <div>
+              <div className="text-sm font-black text-white leading-tight">
+                {areaTransition.name === 'Secret' ? 'SECRET ZONE' :
+                 areaTransition.name === 'Godly' ? 'GODLY ZONE' :
+                 areaTransition.name === 'OG' ? 'OG ZONE' :
+                 `${areaTransition.name} Zone`}
+              </div>
+              <div className="text-xs leading-tight" style={{ color: `#${areaTransition.color.toString(16).padStart(6, '0')}` }}>
+                {areaTransition.name === 'Secret' ? 'You found the secret...' :
+                 areaTransition.name === 'Godly' ? 'ONLY THE WORTHY SURVIVE' :
+                 areaTransition.name === 'OG' ? 'Respect the originals' :
+                 areaTransition.name === 'Exclusive' ? 'VIP access only' :
+                 areaTransition.name === 'Prismatic' ? 'Reality bends around you' :
+                 areaTransition.name === 'Transcendent' ? 'Beyond mortal limits' :
+                 areaTransition.name === 'Celestial' ? 'The cosmos trembles' :
+                 areaTransition.name === 'Divine' ? 'Touched by the gods' :
+                 areaTransition.name === 'Forbidden' ? 'YOU WERE WARNED' :
+                 'Keep running!'}
+              </div>
             </div>
           </div>
         </div>
