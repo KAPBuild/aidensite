@@ -14,15 +14,21 @@ const CONFIG = {
 }
 
 const AREAS = [
-  { name: 'Common',    color: 0x8BC34A, emoji: '🌿', tier: 0 },
-  { name: 'Uncommon',  color: 0x29B6F6, emoji: '💧', tier: 1 },
-  { name: 'Rare',      color: 0x7E57C2, emoji: '💎', tier: 2 },
-  { name: 'Epic',      color: 0xE040FB, emoji: '🔮', tier: 3 },
-  { name: 'Legendary', color: 0xFFB300, emoji: '⭐', tier: 4 },
-  { name: 'Mythic',    color: 0xFF1744, emoji: '🌌', tier: 5 },
-  { name: 'OG',        color: 0x00E676, emoji: '🏆', tier: 6, style: 'og' },
-  { name: 'Secret',    color: 0x000000, emoji: '👁️', tier: 7, style: 'secret' },
-  { name: 'Godly',     color: 0xFFD700, emoji: '👑', tier: 8, style: 'godly' },
+  { name: 'Common',       color: 0x8BC34A, emoji: '🌿', tier: 0 },
+  { name: 'Uncommon',     color: 0x29B6F6, emoji: '💧', tier: 1 },
+  { name: 'Rare',         color: 0x7E57C2, emoji: '💎', tier: 2 },
+  { name: 'Epic',         color: 0xE040FB, emoji: '🔮', tier: 3 },
+  { name: 'Legendary',    color: 0xFFB300, emoji: '⭐', tier: 4 },
+  { name: 'Mythic',       color: 0xFF1744, emoji: '🌌', tier: 5 },
+  { name: 'OG',           color: 0x00E676, emoji: '🏆', tier: 6, style: 'og' },
+  { name: 'Secret',       color: 0x000000, emoji: '👁️', tier: 7, style: 'secret' },
+  { name: 'Godly',        color: 0xFFD700, emoji: '👑', tier: 8, style: 'godly' },
+  { name: 'Exclusive',    color: 0xFF4081, emoji: '🎀', tier: 9, style: 'exclusive' },
+  { name: 'Prismatic',    color: 0x00FFFF, emoji: '🌈', tier: 10, style: 'prismatic' },
+  { name: 'Transcendent', color: 0xE0E0E0, emoji: '🕊️', tier: 11, style: 'transcendent' },
+  { name: 'Celestial',    color: 0x7C4DFF, emoji: '🔮', tier: 12, style: 'celestial' },
+  { name: 'Divine',       color: 0xFFFFE0, emoji: '⛩️', tier: 13, style: 'divine' },
+  { name: 'Forbidden',    color: 0xFF0000, emoji: '🚫', tier: 14, style: 'forbidden' },
 ]
 
 const TSUNAMI_TYPES = [
@@ -30,6 +36,8 @@ const TSUNAMI_TYPES = [
   { name: 'Medium Tsunami',    speed: CONFIG.TSUNAMI_MEDIUM,    color: 0x0288D1, warning: '🌊🌊 Medium Tsunami incoming!' },
   { name: 'Fast Tsunami',      speed: CONFIG.TSUNAMI_FAST,      color: 0x01579B, warning: '🌊🌊🌊 Fast Tsunami! RUN!' },
   { name: 'Lightning Tsunami', speed: CONFIG.TSUNAMI_LIGHTNING, color: 0x311B92, warning: '⚡🌊⚡ LIGHTNING TSUNAMI!!' },
+  { name: 'Mega Tsunami',      speed: 0.22,                     color: 0x880E4F, warning: '⚡🌊⚡ MEGA TSUNAMI!! HIDE NOW!!' },
+  { name: 'Forbidden Wave',    speed: 0.28,                     color: 0xB71C1C, warning: '💀🌊💀 FORBIDDEN WAVE!!! RUN!!!' },
 ]
 
 const SPIN_WHEEL_ITEMS = [
@@ -43,6 +51,8 @@ const SPIN_WHEEL_ITEMS = [
   { name: '🍀 Double Score',  weight: 4,  type: 'buff',    action: 'doubleScore' },
   { name: '📦 Galaxy Block',  weight: 2,  type: 'galaxy_block', action: 'galaxyBlock' },
   { name: '🪐 Galaxy Slap',   weight: 1,  type: 'galaxy_slap', action: 'galaxySlap' },
+  { name: '🌀 Portal Skip',   weight: 3,  type: 'buff',    action: 'portalSkip' },
+  { name: '💎 Rarity Boost',  weight: 2,  type: 'buff',    action: 'rarityBoost' },
 ]
 
 const GALAXY_BLOCK_REWARDS = [
@@ -52,6 +62,29 @@ const GALAXY_BLOCK_REWARDS = [
   '🌌 Nebula Shield!',
   '💫 Shooting Star — 1000 Coins!',
 ]
+
+const ZONE_GOALS = [
+  { zone: 'Common',       goal: 'Survive the first zone', badge: null },
+  { zone: 'Uncommon',     goal: 'Keep moving forward', badge: null },
+  { zone: 'Rare',         goal: 'Getting harder — stay alert', badge: null },
+  { zone: 'Epic',         goal: 'Dodge those waves!', badge: null },
+  { zone: 'Legendary',    goal: 'Few make it this far', badge: null },
+  { zone: 'Mythic',       goal: 'Only legends survive here', badge: null },
+  { zone: 'OG',           goal: 'Prove you\'re an original', badge: null },
+  { zone: 'Secret',       goal: 'Uncover the hidden path', badge: null },
+  { zone: 'Godly',        goal: 'Become divine', badge: null },
+  { zone: 'Exclusive',    goal: 'Reach Exclusive to unlock VIP status', badge: '🎀 VIP' },
+  { zone: 'Prismatic',    goal: 'Survive 3 waves in Prismatic', badge: '🌈 Prismatic Survivor' },
+  { zone: 'Transcendent', goal: 'Reach Transcendent with a shield', badge: '🕊️ Ascended' },
+  { zone: 'Celestial',    goal: 'Collect 5 coins in Celestial', badge: '🔮 Starwalker' },
+  { zone: 'Divine',       goal: 'Survive Divine without hiding', badge: '⛩️ Untouchable' },
+  { zone: 'Forbidden',    goal: 'Reach the Forbidden finish line', badge: '🚫 Forbidden Champion' },
+]
+
+const SHOP_ITEMS = {
+  shieldRecharge: { name: '🛡️ Shield Recharge', cost: 300, desc: 'Auto-restore shield once per round' },
+  waveRadar: { name: '📡 Wave Radar', cost: 500, desc: 'Shows countdown before next wave' },
+}
 
 // Create emoji texture
 function createEmojiTexture(emoji, size = 128) {
@@ -106,6 +139,17 @@ export default function EscapeTsunami({ onBack }) {
   const [galaxyBlockReward, setGalaxyBlockReward] = useState(null)
   const [shouldStartGame, setShouldStartGame] = useState(false)
   const [areaTransition, setAreaTransition] = useState(null) // { name, emoji, color }
+  const [hasShieldRecharge, setHasShieldRecharge] = useState(false)
+  const [hasWaveRadar, setHasWaveRadar] = useState(false)
+  const [waveCountdown, setWaveCountdown] = useState(0)
+  const [milestones, setMilestones] = useState(() => {
+    const saved = localStorage.getItem('escapeTsunamiMilestones')
+    return saved ? JSON.parse(saved) : { highestZone: 0, badges: [] }
+  })
+  const [zoneBadgeEarned, setZoneBadgeEarned] = useState(null)
+  const [currentZoneGoal, setCurrentZoneGoal] = useState('')
+  const [lightningStrikes, setLightningStrikes] = useState([]) // for Divine zone
+  const [rarityBoostTimer, setRarityBoostTimer] = useState(0)
 
   // Mobile joystick state — use refs so touch handlers always have fresh values
   const joystickActiveRef = useRef(false)
@@ -119,12 +163,18 @@ export default function EscapeTsunami({ onBack }) {
   const speedLevelRef = useRef(speedLevel)
   const hasShieldRef = useRef(hasShield)
   const gameStateRef = useRef(gameState)
+  const hasShieldRechargeRef = useRef(hasShieldRecharge)
+  const hasWaveRadarRef = useRef(hasWaveRadar)
+  const milestonesRef = useRef(milestones)
 
   useEffect(() => { coinsRef.current = coins }, [coins])
   useEffect(() => { scoreRef.current = score }, [score])
   useEffect(() => { speedLevelRef.current = speedLevel }, [speedLevel])
   useEffect(() => { hasShieldRef.current = hasShield }, [hasShield])
   useEffect(() => { gameStateRef.current = gameState }, [gameState])
+  useEffect(() => { hasShieldRechargeRef.current = hasShieldRecharge }, [hasShieldRecharge])
+  useEffect(() => { hasWaveRadarRef.current = hasWaveRadar }, [hasWaveRadar])
+  useEffect(() => { milestonesRef.current = milestones }, [milestones])
 
   // ─── CREATE 3D SCENE ──────────────────────────────
   const initScene = useCallback(() => {
@@ -191,6 +241,18 @@ export default function EscapeTsunami({ onBack }) {
         groundMat = new THREE.MeshLambertMaterial({ color: 0xFFD700, emissive: 0xFFAB00, emissiveIntensity: 0.6 })
       } else if (area.style === 'og') {
         groundMat = new THREE.MeshLambertMaterial({ color: 0x1B5E20, emissive: 0x00E676, emissiveIntensity: 0.3 })
+      } else if (area.style === 'exclusive') {
+        groundMat = new THREE.MeshLambertMaterial({ color: 0x880E4F, emissive: 0xFF4081, emissiveIntensity: 0.4 })
+      } else if (area.style === 'prismatic') {
+        groundMat = new THREE.MeshLambertMaterial({ color: 0x006064, emissive: 0x00FFFF, emissiveIntensity: 0.5 })
+      } else if (area.style === 'transcendent') {
+        groundMat = new THREE.MeshLambertMaterial({ color: 0xBDBDBD, emissive: 0xFFFFFF, emissiveIntensity: 0.7 })
+      } else if (area.style === 'celestial') {
+        groundMat = new THREE.MeshLambertMaterial({ color: 0x1A0044, emissive: 0x7C4DFF, emissiveIntensity: 0.6 })
+      } else if (area.style === 'divine') {
+        groundMat = new THREE.MeshLambertMaterial({ color: 0xFFF8E1, emissive: 0xFFD740, emissiveIntensity: 0.8 })
+      } else if (area.style === 'forbidden') {
+        groundMat = new THREE.MeshLambertMaterial({ color: 0x1a0000, emissive: 0xFF0000, emissiveIntensity: 0.5 })
       } else {
         groundMat = new THREE.MeshLambertMaterial({ color: area.color })
       }
@@ -235,6 +297,12 @@ export default function EscapeTsunami({ onBack }) {
       if (area.style === 'secret') obstacleEmojis = ['👻', '💀', '🕳️', '🔮', '👁️', '🕸️', '⚰️', '🖤']
       else if (area.style === 'godly') obstacleEmojis = ['⚡', '🔱', '👑', '💎', '🏛️', '☁️', '🌩️', '✨']
       else if (area.style === 'og') obstacleEmojis = ['🎮', '📺', '🕹️', '💾', '📼', '🏆', '🎖️', '🥇']
+      else if (area.style === 'exclusive') obstacleEmojis = ['🎀', '💄', '👠', '💅', '🪩', '💝', '🎪', '🦩']
+      else if (area.style === 'prismatic') obstacleEmojis = ['🌈', '🔷', '🔶', '♦️', '🪬', '💠', '🔻', '🔺']
+      else if (area.style === 'transcendent') obstacleEmojis = ['🕊️', '🦢', '☁️', '🌬️', '❄️', '🪽', '💨', '🌫️']
+      else if (area.style === 'celestial') obstacleEmojis = ['🌙', '⚡', '🌠', '🪐', '💫', '🌀', '🌑', '☄️']
+      else if (area.style === 'divine') obstacleEmojis = ['⛩️', '🏯', '🐉', '🎐', '🪷', '🔔', '☯️', '🕉️']
+      else if (area.style === 'forbidden') obstacleEmojis = ['🚫', '⛓️', '🔥', '💀', '☠️', '🩸', '👿', '🕳️']
       else obstacleEmojis = ['🌳', '🪨', '🏠', '🚗', '📦', '🗿', '🎪', '⛺']
       for (let j = 0; j < 3 + area.tier; j++) {
         const emoji = obstacleEmojis[Math.floor(Math.random() * obstacleEmojis.length)]
@@ -251,6 +319,12 @@ export default function EscapeTsunami({ onBack }) {
       if (area.style === 'secret') decorEmojis = ['🕯️', '👁️', '🌑', '💜', '🔮']
       else if (area.style === 'godly') decorEmojis = ['✨', '💫', '⭐', '🌟', '👑']
       else if (area.style === 'og') decorEmojis = ['🎮', '🕹️', '💚', '🏆', '📀']
+      else if (area.style === 'exclusive') decorEmojis = ['🌸', '💗', '🎀', '🪩', '💝']
+      else if (area.style === 'prismatic') decorEmojis = ['🌈', '💠', '🔷', '🔶', '✦']
+      else if (area.style === 'transcendent') decorEmojis = ['🕊️', '☁️', '🌬️', '❄️', '🪽']
+      else if (area.style === 'celestial') decorEmojis = ['🌙', '💫', '🌠', '🪐', '🌀']
+      else if (area.style === 'divine') decorEmojis = ['⛩️', '🪷', '🔔', '🐉', '☯️']
+      else if (area.style === 'forbidden') decorEmojis = ['⛓️', '🔥', '💀', '🩸', '👿']
       else decorEmojis = ['🌴', '🌵', '🌲', '🌻', '🍄']
       for (let side = -1; side <= 1; side += 2) {
         for (let d = 0; d < 3; d++) {
@@ -262,8 +336,14 @@ export default function EscapeTsunami({ onBack }) {
 
       // Special areas get floating particles
       if (area.style) {
-        const particleEmoji = area.style === 'secret' ? '👁️' : area.style === 'godly' ? '✨' : '💚'
-        for (let e = 0; e < 6; e++) {
+        const particleMap = {
+          secret: '👁️', godly: '✨', og: '💚',
+          exclusive: '💖', prismatic: '🌈', transcendent: '✨',
+          celestial: '💫', divine: '🪷', forbidden: '🔥'
+        }
+        const particleEmoji = particleMap[area.style] || '✨'
+        const particleCount = area.tier >= 11 ? 10 : area.tier >= 9 ? 8 : 6
+        for (let e = 0; e < particleCount; e++) {
           const particle = createEmojiSprite(particleEmoji, 1.5)
           particle.position.set(
             (Math.random() - 0.5) * 20,
@@ -373,6 +453,18 @@ export default function EscapeTsunami({ onBack }) {
       wavesPerArea: 2,
       waveSpeed: 0,
       wavesSpawned: 0,
+      // Zone-specific tracking
+      zoneWavesSurvived: 0, // waves survived in current zone (for Prismatic badge)
+      zoneCoinsPicked: 0, // coins picked in current zone (for Celestial badge)
+      zoneHidUsed: false, // did player hide in current zone (for Divine badge)
+      lightningTimer: 0,
+      lightningSpots: [],
+      gravityShiftTimer: 0,
+      gravityMult: 1,
+      ghostWaveActive: false,
+      rarityBoostActive: false,
+      rarityBoostTimer: 0,
+      shieldRechargeUsed: false,
     }
 
     return { scene, camera, renderer }
@@ -452,10 +544,27 @@ export default function EscapeTsunami({ onBack }) {
         return
       }
 
+      // ─── Determine current area early (needed for zone mechanics) ─────
+      const absZEarly = Math.abs(game.player.position.z)
+      const areaSizeEarly = CONFIG.AREA_LENGTH + CONFIG.HIDING_GAP
+      const areaIdx = Math.min(Math.floor(absZEarly / areaSizeEarly), AREAS.length - 1)
+
+      // ─── Zone-specific: Celestial gravity shift ─────
+      if (areaIdx === 12) {
+        game.gravityShiftTimer -= dt * 16.67
+        if (game.gravityShiftTimer <= 0) {
+          game.gravityMult = 0.7 + Math.random() * 0.6 // 0.7x to 1.3x
+          game.gravityShiftTimer = 2000 + Math.random() * 3000
+        }
+      } else {
+        game.gravityMult = 1
+      }
+
       // ─── Player movement ───────
       const speedMult = 1 + speedLevelRef.current * 0.2
       const boostMult = game.speedBoostTimer > 0 ? 1.5 : 1
-      const speed = CONFIG.PLAYER_BASE_SPEED * speedMult * boostMult * dt
+      const gravMult = game.gravityMult || 1
+      const speed = CONFIG.PLAYER_BASE_SPEED * speedMult * boostMult * gravMult * dt
 
       let moveX = 0
       let moveZ = 0
@@ -528,6 +637,7 @@ export default function EscapeTsunami({ onBack }) {
         }
       }
       setIsHiding(playerHiding)
+      if (playerHiding && areaIdx === 13) game.zoneHidUsed = true
 
       // ─── Tsunami wave system ──────
       if (game.freezeTimer > 0) {
@@ -546,14 +656,35 @@ export default function EscapeTsunami({ onBack }) {
           game.tsunami.position.z = game.player.position.z - 80
           game.tsunami.position.x = 0
           game.tsunami.visible = true
-          // Pick wave type — gets harder as more waves spawn
-          const waveTypeIdx = Math.min(Math.floor(game.wavesSpawned / 3), 3)
+          // Pick wave type — gets harder as more waves spawn and in higher zones
+          let maxWaveType = Math.min(Math.floor(game.wavesSpawned / 3), 3)
+          // Unlock Mega Tsunami in zones 10+, Forbidden Wave in zones 13+
+          if (areaIdx >= 13) maxWaveType = Math.min(Math.max(maxWaveType, 4), 5)
+          else if (areaIdx >= 10) maxWaveType = Math.min(Math.max(maxWaveType, 3), 4)
+          const waveTypeIdx = maxWaveType
           game.tsunamiType = TSUNAMI_TYPES[waveTypeIdx]
           game.tsunamiMesh.material.color.set(game.tsunamiType.color)
           game.waveSpeed = (0.3 + game.tsunamiType.speed * 2) * 1.2
 
-          setTsunamiWarning(game.tsunamiType.warning)
+          // Transcendent zone: ghost wave — low opacity, harder to see
+          if (areaIdx === 11 && Math.random() < 0.4) {
+            game.ghostWaveActive = true
+            game.tsunamiMesh.material.opacity = 0.2
+          } else {
+            game.ghostWaveActive = false
+            game.tsunamiMesh.material.opacity = 0.8
+          }
+
+          // Exclusive zone: 15% faster waves
+          if (areaIdx >= 9) {
+            game.waveSpeed *= (1 + (areaIdx - 8) * 0.1)
+          }
+
+          setTsunamiWarning(game.ghostWaveActive ? '👻 ...something approaches...' : game.tsunamiType.warning)
           setTimeout(() => setTsunamiWarning(''), 2500)
+
+          // Wave Radar: update countdown
+          if (hasWaveRadarRef.current) setWaveCountdown(0)
         }
       } else {
         // Wave is active — move it toward the player (increasing z)
@@ -568,13 +699,21 @@ export default function EscapeTsunami({ onBack }) {
         if (waveFrontZ >= playerZ - 1 && waveFrontZ <= playerZ + 4) {
           // Wave is sweeping through player position
           if (playerHiding) {
+            game.zoneWavesSurvived++
             setMessage('🛖 Safe! The wave passed over!')
             setTimeout(() => setMessage(''), 2000)
           } else if (hasShieldRef.current) {
+            game.zoneWavesSurvived++
             setHasShield(false)
             setMessage('🛡️ Shield blocked the wave!')
             setTimeout(() => setMessage(''), 2000)
+            // Shield Recharge: auto-restore shield once per round
+            if (hasShieldRechargeRef.current && !game.shieldRechargeUsed) {
+              game.shieldRechargeUsed = true
+              setTimeout(() => { setHasShield(true); setMessage('🛡️ Shield Recharged!'); setTimeout(() => setMessage(''), 1500) }, 1000)
+            }
           } else if (game.galaxySlapActive) {
+            game.zoneWavesSurvived++
             setMessage('🪐 Galaxy Slap deflected the wave!')
             setTimeout(() => setMessage(''), 2000)
           } else {
@@ -589,6 +728,12 @@ export default function EscapeTsunami({ onBack }) {
             const scores = saved ? JSON.parse(saved) : []
             scores.push({ score: finalScore, date: new Date().toLocaleDateString() })
             localStorage.setItem('aidenScores-escapetsunami', JSON.stringify(scores))
+
+            // Save milestone progress
+            const m = { ...milestonesRef.current }
+            if (areaIdx > m.highestZone) m.highestZone = areaIdx
+            localStorage.setItem('escapeTsunamiMilestones', JSON.stringify(m))
+            setMilestones(m)
 
             setDamageFlash(true)
             setTimeout(() => setDamageFlash(false), 300)
@@ -610,21 +755,142 @@ export default function EscapeTsunami({ onBack }) {
       }
 
       // ─── Determine current area + transition banner ─────
-      const absZ = Math.abs(game.player.position.z)
-      const areaSize = CONFIG.AREA_LENGTH + CONFIG.HIDING_GAP
-      const areaIdx = Math.min(Math.floor(absZ / areaSize), AREAS.length - 1)
       setCurrentArea(AREAS[areaIdx].name)
 
       // Show transition banner when entering a new area
       if (areaIdx !== game.lastAreaIdx) {
+        // Check badges for the zone we're LEAVING
+        const prevIdx = game.lastAreaIdx
+        if (prevIdx >= 0) {
+          const m = { ...milestonesRef.current }
+          let badgeEarned = null
+          // Prismatic (10): survive 3 waves
+          if (prevIdx === 10 && game.zoneWavesSurvived >= 3 && !m.badges.includes('🌈 Prismatic Survivor')) {
+            m.badges.push('🌈 Prismatic Survivor')
+            badgeEarned = '🌈 Prismatic Survivor'
+          }
+          // Transcendent (11): reach with shield
+          if (prevIdx === 11 && hasShieldRef.current && !m.badges.includes('🕊️ Ascended')) {
+            m.badges.push('🕊️ Ascended')
+            badgeEarned = '🕊️ Ascended'
+          }
+          // Celestial (12): collect 5 coins
+          if (prevIdx === 12 && game.zoneCoinsPicked >= 5 && !m.badges.includes('🔮 Starwalker')) {
+            m.badges.push('🔮 Starwalker')
+            badgeEarned = '🔮 Starwalker'
+          }
+          // Divine (13): survive without hiding
+          if (prevIdx === 13 && !game.zoneHidUsed && !m.badges.includes('⛩️ Untouchable')) {
+            m.badges.push('⛩️ Untouchable')
+            badgeEarned = '⛩️ Untouchable'
+          }
+          if (badgeEarned) {
+            setZoneBadgeEarned(badgeEarned)
+            setTimeout(() => setZoneBadgeEarned(null), 3000)
+            localStorage.setItem('escapeTsunamiMilestones', JSON.stringify(m))
+            setMilestones(m)
+          }
+        }
+
         game.lastAreaIdx = areaIdx
+        // Reset zone-specific counters
+        game.zoneWavesSurvived = 0
+        game.zoneCoinsPicked = 0
+        game.zoneHidUsed = false
+
         const area = AREAS[areaIdx]
         setAreaTransition({ name: area.name, emoji: area.emoji, color: area.color })
         setTimeout(() => setAreaTransition(null), 2500)
+
+        // Update current zone goal
+        if (ZONE_GOALS[areaIdx]) setCurrentZoneGoal(ZONE_GOALS[areaIdx].goal)
+
+        // Exclusive (9): just reaching it earns the badge
+        if (areaIdx === 9) {
+          const m = { ...milestonesRef.current }
+          if (!m.badges.includes('🎀 VIP')) {
+            m.badges.push('🎀 VIP')
+            setZoneBadgeEarned('🎀 VIP — Exclusive Club!')
+            setTimeout(() => setZoneBadgeEarned(null), 3000)
+            localStorage.setItem('escapeTsunamiMilestones', JSON.stringify(m))
+            setMilestones(m)
+          }
+        }
+
+        // Update milestone highest zone
+        const m2 = { ...milestonesRef.current }
+        if (areaIdx > m2.highestZone) {
+          m2.highestZone = areaIdx
+          localStorage.setItem('escapeTsunamiMilestones', JSON.stringify(m2))
+          setMilestones(m2)
+        }
+      }
+
+      // ─── Wave Radar: show countdown ─────
+      if (hasWaveRadarRef.current && !game.waveActive) {
+        setWaveCountdown(Math.max(0, Math.ceil(game.waveTimer / 1000)))
+      }
+
+      // ─── Zone-specific: Divine lightning strikes ─────
+      if (areaIdx >= 13) {
+        game.lightningTimer -= dt * 16.67
+        if (game.lightningTimer <= 0) {
+          game.lightningTimer = 1500 + Math.random() * 2500
+          // Create lightning spots near player
+          const strikes = []
+          const numStrikes = areaIdx === 14 ? 4 : 2
+          for (let s = 0; s < numStrikes; s++) {
+            strikes.push({
+              x: game.player.position.x + (Math.random() - 0.5) * 14,
+              z: game.player.position.z - Math.random() * 20,
+              timer: 1500,
+            })
+          }
+          game.lightningSpots = strikes
+          setLightningStrikes(strikes.map(s => ({ x: s.x, z: s.z })))
+        }
+        // Check if player is on a lightning spot
+        for (const spot of game.lightningSpots) {
+          spot.timer -= dt * 16.67
+          if (spot.timer <= 0 && spot.timer > -200) {
+            const dx = game.player.position.x - spot.x
+            const dz = game.player.position.z - spot.z
+            if (Math.sqrt(dx * dx + dz * dz) < 2) {
+              if (!hasShieldRef.current && !game.galaxySlapActive) {
+                // Hit by lightning — game over
+                const finalScore = scoreRef.current
+                const savedHigh = parseInt(localStorage.getItem('escapeTsunamiHighScore') || '0')
+                if (finalScore > savedHigh) {
+                  localStorage.setItem('escapeTsunamiHighScore', finalScore.toString())
+                  setHighScore(finalScore)
+                }
+                setDamageFlash(true)
+                setTimeout(() => setDamageFlash(false), 300)
+                setGameState('gameover')
+                return
+              } else if (hasShieldRef.current) {
+                setHasShield(false)
+                setMessage('🛡️ Shield blocked the lightning!')
+                setTimeout(() => setMessage(''), 1500)
+              }
+            }
+            spot.timer = -999 // don't re-trigger
+          }
+        }
+        // Clean up expired spots
+        if (game.lightningSpots.length > 0 && game.lightningSpots.every(s => s.timer < -200)) {
+          game.lightningSpots = []
+          setLightningStrikes([])
+        }
+      } else {
+        if (game.lightningSpots.length > 0) {
+          game.lightningSpots = []
+          setLightningStrikes([])
+        }
       }
 
       // ─── Score ─────
-      const distScore = Math.floor(absZ * (game.doubleScoreTimer > 0 ? 2 : 1))
+      const distScore = Math.floor(absZEarly * (game.doubleScoreTimer > 0 ? 2 : 1))
       setScore(distScore)
 
       // ─── Coin collection ───────
@@ -650,8 +916,10 @@ export default function EscapeTsunami({ onBack }) {
         if (Math.abs(dx) < 2 && Math.abs(dz) < 2) {
           sceneRef.current.remove(c)
           game.coins.splice(i, 1)
-          const coinVal = (areaIdx + 1) * 5
+          const rarityMult = game.rarityBoostActive ? 2 : 1
+          const coinVal = (areaIdx + 1) * 5 * rarityMult
           setCoins(prev => prev + coinVal)
+          game.zoneCoinsPicked++
         }
       }
 
@@ -670,6 +938,10 @@ export default function EscapeTsunami({ onBack }) {
         game.galaxySlapTimer -= dt * 16.67
         if (game.galaxySlapTimer <= 0) game.galaxySlapActive = false
       }
+      if (game.rarityBoostTimer > 0) {
+        game.rarityBoostTimer -= dt * 16.67
+        if (game.rarityBoostTimer <= 0) game.rarityBoostActive = false
+      }
 
       // ─── Win condition ─────
       if (game.player.position.z <= game.finishZ) {
@@ -683,6 +955,16 @@ export default function EscapeTsunami({ onBack }) {
           localStorage.setItem('escapeTsunamiHighScore', finalScore.toString())
           setHighScore(finalScore)
         }
+        // Forbidden Champion badge — completed all 15 zones
+        const m = { ...milestonesRef.current }
+        if (areaIdx >= 14 && !m.badges.includes('🚫 Forbidden Champion')) {
+          m.badges.push('🚫 Forbidden Champion')
+          setZoneBadgeEarned('🚫 FORBIDDEN CHAMPION!')
+          setTimeout(() => setZoneBadgeEarned(null), 5000)
+        }
+        m.highestZone = Math.max(m.highestZone, areaIdx)
+        localStorage.setItem('escapeTsunamiMilestones', JSON.stringify(m))
+        setMilestones(m)
         setGameState('shop')
         return
       }
@@ -824,6 +1106,13 @@ export default function EscapeTsunami({ onBack }) {
         if (item.action === 'magnet') gameRef.current.magnetTimer = 20000
         if (item.action === 'freeze') gameRef.current.freezeTimer = 10000
         if (item.action === 'doubleScore') gameRef.current.doubleScoreTimer = 20000
+        if (item.action === 'portalSkip' && gameRef.current.player) {
+          gameRef.current.player.position.z -= (CONFIG.AREA_LENGTH + CONFIG.HIDING_GAP)
+        }
+        if (item.action === 'rarityBoost') {
+          gameRef.current.rarityBoostActive = true
+          gameRef.current.rarityBoostTimer = 30000
+        }
         break
       case 'galaxy_block': {
         const reward = GALAXY_BLOCK_REWARDS[Math.floor(Math.random() * GALAXY_BLOCK_REWARDS.length)]
@@ -849,6 +1138,18 @@ export default function EscapeTsunami({ onBack }) {
       setSpeedLevel(prev => prev + 1)
     }
   }
+  const buyShieldRecharge = () => {
+    if (coins >= SHOP_ITEMS.shieldRecharge.cost && !hasShieldRecharge) {
+      setCoins(prev => prev - SHOP_ITEMS.shieldRecharge.cost)
+      setHasShieldRecharge(true)
+    }
+  }
+  const buyWaveRadar = () => {
+    if (coins >= SHOP_ITEMS.waveRadar.cost && !hasWaveRadar) {
+      setCoins(prev => prev - SHOP_ITEMS.waveRadar.cost)
+      setHasWaveRadar(true)
+    }
+  }
 
   // ─── RENDER ────────────────────────────
 
@@ -867,27 +1168,44 @@ export default function EscapeTsunami({ onBack }) {
           </h1>
           <p className="text-xl text-cyan-200 font-bold mb-4">Emoji Edition</p>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-6 max-w-md mx-auto text-left text-white">
+          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-4 max-w-md mx-auto text-left text-white">
             <p className="font-bold text-yellow-300 mb-2">🎯 GOAL:</p>
-            <p className="mb-2">Run through ALL 9 zones to escape the tsunami! Can you reach Godly?</p>
+            <p className="mb-2">Run through ALL 15 zones to escape the tsunami! Can you reach the Forbidden zone?</p>
             <p className="font-bold text-yellow-300 mb-2">🎮 HOW TO PLAY:</p>
             <ul className="text-sm space-y-1">
               <li>• Run forward (↑ or W) toward the finish</li>
               <li>• Tsunami waves come every few seconds!</li>
               <li>• Hide behind 🛖 shelters or 🌳🪨 obstacles to survive</li>
               <li>• Collect 💰 coins for upgrades</li>
+              <li>• Higher zones = unique hazards + bigger rewards!</li>
               <li>• Reach the 🏁 finish to win the round!</li>
             </ul>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
-            {AREAS.map(a => (
-              <div key={a.name} className="bg-white/10 rounded-lg px-3 py-2 text-center backdrop-blur-sm">
-                <span className="text-2xl">{a.emoji}</span>
-                <span className="text-white text-xs font-bold ml-1">{a.name}</span>
-              </div>
-            ))}
+          {/* Zone Progress */}
+          <div className="flex flex-wrap justify-center gap-1.5 mb-4 max-w-lg">
+            {AREAS.map((a, i) => {
+              const reached = i <= milestones.highestZone
+              return (
+                <div key={a.name} className={`rounded-lg px-2 py-1.5 text-center backdrop-blur-sm transition-all ${reached ? 'bg-white/20 border border-white/30' : 'bg-white/5 opacity-50'}`}>
+                  <span className="text-lg">{reached ? a.emoji : '🔒'}</span>
+                  <span className={`text-xs font-bold ml-1 ${reached ? 'text-white' : 'text-gray-400'}`}>{a.name}</span>
+                </div>
+              )
+            })}
           </div>
+
+          {/* Badges */}
+          {milestones.badges && milestones.badges.length > 0 && (
+            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 mb-4 max-w-md mx-auto">
+              <p className="text-yellow-300 font-bold text-sm mb-1">🏅 Badges Earned:</p>
+              <div className="flex flex-wrap gap-2">
+                {milestones.badges.map((b, i) => (
+                  <span key={i} className="bg-white/10 rounded-lg px-2 py-1 text-white text-xs font-bold">{b}</span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={startGame}
@@ -917,20 +1235,63 @@ export default function EscapeTsunami({ onBack }) {
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-800 to-purple-600 flex flex-col items-center justify-center p-4">
         <h1 className="text-5xl font-black text-white mb-2">🏪 SHOP</h1>
         <p className="text-yellow-300 text-2xl font-bold mb-2">Round {roundNum} Complete!</p>
-        <p className="text-white text-xl font-bold mb-6">💰 {coins} Coins</p>
+        <p className="text-white text-xl font-bold mb-2">💰 {coins} Coins</p>
+        {zoneBadgeEarned && (
+          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-2 rounded-xl font-black text-lg animate-pulse mb-2">
+            Badge Earned: {zoneBadgeEarned}
+          </div>
+        )}
 
-        <div className="grid gap-4 max-w-md w-full mb-6">
+        <div className="grid gap-3 max-w-md w-full mb-6">
           <button
             onClick={buySpeed}
             disabled={coins < speedCost}
-            className={`p-6 rounded-xl text-left transition-all ${
+            className={`p-4 rounded-xl text-left transition-all ${
               coins >= speedCost ? 'bg-white/20 hover:bg-white/30' : 'bg-white/5 opacity-50'
             }`}
           >
-            <div className="text-3xl mb-2">🏃 Speed Upgrade</div>
-            <div className="text-white font-bold">Level {speedLevel} → {speedLevel + 1}</div>
-            <div className="text-yellow-300 font-bold">Cost: {speedCost} coins</div>
+            <div className="text-2xl mb-1">🏃 Speed Upgrade</div>
+            <div className="text-white font-bold text-sm">Level {speedLevel} → {speedLevel + 1}</div>
+            <div className="text-yellow-300 font-bold text-sm">Cost: {speedCost} coins</div>
           </button>
+
+          {!hasShieldRecharge && (
+            <button
+              onClick={buyShieldRecharge}
+              disabled={coins < SHOP_ITEMS.shieldRecharge.cost}
+              className={`p-4 rounded-xl text-left transition-all ${
+                coins >= SHOP_ITEMS.shieldRecharge.cost ? 'bg-white/20 hover:bg-white/30' : 'bg-white/5 opacity-50'
+              }`}
+            >
+              <div className="text-2xl mb-1">{SHOP_ITEMS.shieldRecharge.name}</div>
+              <div className="text-white font-bold text-sm">{SHOP_ITEMS.shieldRecharge.desc}</div>
+              <div className="text-yellow-300 font-bold text-sm">Cost: {SHOP_ITEMS.shieldRecharge.cost} coins</div>
+            </button>
+          )}
+          {hasShieldRecharge && (
+            <div className="p-4 rounded-xl bg-green-500/20 text-green-300 font-bold text-sm">
+              🛡️ Shield Recharge — OWNED
+            </div>
+          )}
+
+          {!hasWaveRadar && (
+            <button
+              onClick={buyWaveRadar}
+              disabled={coins < SHOP_ITEMS.waveRadar.cost}
+              className={`p-4 rounded-xl text-left transition-all ${
+                coins >= SHOP_ITEMS.waveRadar.cost ? 'bg-white/20 hover:bg-white/30' : 'bg-white/5 opacity-50'
+              }`}
+            >
+              <div className="text-2xl mb-1">{SHOP_ITEMS.waveRadar.name}</div>
+              <div className="text-white font-bold text-sm">{SHOP_ITEMS.waveRadar.desc}</div>
+              <div className="text-yellow-300 font-bold text-sm">Cost: {SHOP_ITEMS.waveRadar.cost} coins</div>
+            </button>
+          )}
+          {hasWaveRadar && (
+            <div className="p-4 rounded-xl bg-green-500/20 text-green-300 font-bold text-sm">
+              📡 Wave Radar — OWNED
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4 flex-wrap justify-center">
@@ -1013,18 +1374,32 @@ export default function EscapeTsunami({ onBack }) {
 
   // GAME OVER
   if (gameState === 'gameover') {
+    const areaColor = AREAS.find(a => a.name === currentArea)?.color || 0xffffff
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-gray-900 flex flex-col items-center justify-center p-4">
         <div className="text-8xl mb-4">🌊💀</div>
         <h1 className="text-5xl font-black text-red-400 mb-4">WASHED AWAY!</h1>
-        <div className="bg-white/10 rounded-xl p-6 mb-6 text-center">
+        <div className="bg-white/10 rounded-xl p-6 mb-4 text-center">
           <p className="text-white text-2xl font-bold mb-2">Score: {score}</p>
           <p className="text-yellow-300 text-xl font-bold mb-2">💰 {coins} Coins</p>
-          <p className="text-cyan-300 font-bold">Reached: {currentArea}</p>
+          <p className="font-bold" style={{ color: `#${areaColor.toString(16).padStart(6, '0')}` }}>
+            Reached: {AREAS.find(a => a.name === currentArea)?.emoji} {currentArea}
+          </p>
+          <p className="text-gray-300 text-sm mt-1">Highest Zone Ever: {AREAS[milestones.highestZone]?.emoji} {AREAS[milestones.highestZone]?.name}</p>
           {score >= highScore && score > 0 && (
             <p className="text-yellow-400 text-xl font-black mt-2 animate-pulse">NEW HIGH SCORE!</p>
           )}
         </div>
+        {milestones.badges && milestones.badges.length > 0 && (
+          <div className="bg-white/10 rounded-xl p-4 mb-4 text-center max-w-sm">
+            <p className="text-yellow-300 font-bold text-sm mb-2">🏅 Your Badges:</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {milestones.badges.map((b, i) => (
+                <span key={i} className="bg-white/10 rounded-lg px-2 py-1 text-white text-xs font-bold">{b}</span>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex gap-4">
           <button
             onClick={() => {
@@ -1033,6 +1408,8 @@ export default function EscapeTsunami({ onBack }) {
               setSpeedLevel(0)
               setFreeSpins(1)
               setHasShield(false)
+              setHasShieldRecharge(false)
+              setHasWaveRadar(false)
               startGame()
             }}
             className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white px-8 py-4 rounded-xl font-black text-xl shadow-2xl hover:scale-105 transition-all"
@@ -1067,8 +1444,11 @@ export default function EscapeTsunami({ onBack }) {
         <div className="bg-black/60 backdrop-blur-sm rounded-lg p-3 text-white text-right text-sm">
           <div className="font-bold">🏃 Speed Lv.{speedLevel}</div>
           {hasShield && <div className="text-green-300 font-bold">🛡️ Shield</div>}
+          {hasShieldRecharge && <div className="text-green-200 font-bold text-xs">🔋 Recharge</div>}
+          {hasWaveRadar && <div className="text-blue-200 font-bold text-xs">📡 Radar</div>}
           {isHiding && <div className="text-yellow-300 font-bold animate-pulse">🛖 HIDING!</div>}
           {gameRef.current?.galaxySlapActive && <div className="text-purple-300 font-bold">🪐 Galaxy Slap!</div>}
+          {gameRef.current?.rarityBoostActive && <div className="text-pink-300 font-bold">💎 2x Coins!</div>}
         </div>
       </div>
 
@@ -1076,8 +1456,24 @@ export default function EscapeTsunami({ onBack }) {
       <div className={`absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold z-20 pointer-events-none ${
         gameRef.current?.waveActive ? 'bg-red-600/90 animate-pulse text-white' : 'bg-green-600/80 text-white'
       }`}>
-        {gameRef.current?.waveActive ? '🌊 TSUNAMI WAVE! HIDE BEHIND SOMETHING!' : '🏁 Run forward! Find cover before the next wave!'}
+        {gameRef.current?.waveActive ? '🌊 TSUNAMI WAVE! HIDE BEHIND SOMETHING!' :
+         hasWaveRadar && waveCountdown > 0 ? `📡 Next wave in ${waveCountdown}s — Find cover!` :
+         '🏁 Run forward! Find cover before the next wave!'}
       </div>
+
+      {/* Zone goal */}
+      {currentZoneGoal && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold z-20 pointer-events-none bg-purple-600/70 text-white">
+          🎯 {currentZoneGoal}
+        </div>
+      )}
+
+      {/* Lightning strike warnings */}
+      {lightningStrikes.length > 0 && (
+        <div className="absolute top-28 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold z-20 pointer-events-none bg-yellow-500/90 animate-pulse text-black">
+          ⚡ LIGHTNING INCOMING! MOVE!
+        </div>
+      )}
 
       {/* Area transition banner */}
       {areaTransition && (
@@ -1088,12 +1484,24 @@ export default function EscapeTsunami({ onBack }) {
               {areaTransition.name === 'Secret' ? '👁️ SECRET ZONE' :
                areaTransition.name === 'Godly' ? '👑 GODLY ZONE' :
                areaTransition.name === 'OG' ? '🏆 OG ZONE' :
+               areaTransition.name === 'Exclusive' ? '🎀 EXCLUSIVE ZONE' :
+               areaTransition.name === 'Prismatic' ? '🌈 PRISMATIC ZONE' :
+               areaTransition.name === 'Transcendent' ? '🕊️ TRANSCENDENT ZONE' :
+               areaTransition.name === 'Celestial' ? '🔮 CELESTIAL ZONE' :
+               areaTransition.name === 'Divine' ? '⛩️ DIVINE ZONE' :
+               areaTransition.name === 'Forbidden' ? '🚫 FORBIDDEN ZONE' :
                `${areaTransition.name} Area`}
             </div>
             <div className="text-sm mt-1" style={{ color: `#${areaTransition.color.toString(16).padStart(6, '0')}` }}>
               {areaTransition.name === 'Secret' ? 'You found the secret...' :
                areaTransition.name === 'Godly' ? 'ONLY THE WORTHY SURVIVE' :
                areaTransition.name === 'OG' ? 'Respect the originals' :
+               areaTransition.name === 'Exclusive' ? 'VIP access only' :
+               areaTransition.name === 'Prismatic' ? 'Reality bends around you' :
+               areaTransition.name === 'Transcendent' ? 'Beyond mortal limits' :
+               areaTransition.name === 'Celestial' ? 'The cosmos trembles' :
+               areaTransition.name === 'Divine' ? 'Touched by the gods' :
+               areaTransition.name === 'Forbidden' ? 'YOU WERE WARNED' :
                'Keep running!'}
             </div>
           </div>
@@ -1109,6 +1517,15 @@ export default function EscapeTsunami({ onBack }) {
       {message && (
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 bg-black/70 text-white px-8 py-3 rounded-xl font-black text-xl z-20 animate-bounce">
           {message}
+        </div>
+      )}
+
+      {/* Badge earned notification */}
+      {zoneBadgeEarned && (
+        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-8 py-4 rounded-2xl font-black text-xl animate-bounce shadow-2xl border-2 border-white/50">
+            🏅 BADGE: {zoneBadgeEarned}
+          </div>
         </div>
       )}
 
