@@ -81,6 +81,25 @@ const ZONE_GOALS = [
   { zone: 'Forbidden',    goal: 'Reach the Forbidden finish line', badge: '🚫 Forbidden Champion' },
 ]
 
+const PLAYER_CHARACTERS = [
+  { emoji: '🧑', name: 'Runner' },
+  { emoji: '🥷', name: 'Ninja' },
+  { emoji: '🧙', name: 'Wizard' },
+  { emoji: '🦸', name: 'Hero' },
+  { emoji: '👻', name: 'Ghost' },
+  { emoji: '🤖', name: 'Robot' },
+  { emoji: '🐱', name: 'Cat' },
+  { emoji: '🐶', name: 'Dog' },
+  { emoji: '🦊', name: 'Fox' },
+  { emoji: '🐸', name: 'Frog' },
+  { emoji: '🦁', name: 'Lion' },
+  { emoji: '🐲', name: 'Dragon' },
+  { emoji: '🐵', name: 'Monkey' },
+  { emoji: '🦄', name: 'Unicorn' },
+  { emoji: '👽', name: 'Alien' },
+  { emoji: '💀', name: 'Skull' },
+]
+
 const SHOP_ITEMS = {
   shieldRecharge: { name: '🛡️ Shield Recharge', cost: 300, desc: 'Auto-restore shield once per round' },
   waveRadar: { name: '📡 Wave Radar', cost: 500, desc: 'Shows countdown before next wave' },
@@ -119,6 +138,9 @@ export default function EscapeTsunami({ onBack }) {
   const animFrameRef = useRef(null)
 
   const [gameState, setGameState] = useState('menu')
+  const [selectedCharacter, setSelectedCharacter] = useState(() => {
+    return localStorage.getItem('escapeTsunamiCharacter') || '🧑'
+  })
   const [score, setScore] = useState(0)
   const [coins, setCoins] = useState(0)
   const [speedLevel, setSpeedLevel] = useState(0)
@@ -390,7 +412,7 @@ export default function EscapeTsunami({ onBack }) {
     scene.add(goalArrow)
 
     // ─── Player (emoji runner) ──────────
-    const playerEmoji = createEmojiSprite('🏃', 3)
+    const playerEmoji = createEmojiSprite(selectedCharacter, 3)
     playerEmoji.position.set(0, 1.5, 2)
     scene.add(playerEmoji)
 
@@ -410,10 +432,10 @@ export default function EscapeTsunami({ onBack }) {
     tsunamiMesh.position.y = 9
     tsunamiGroup.add(tsunamiMesh)
 
-    // Big wave emojis across the front
+    // Big wave emojis across the front (facing -z direction, the way the wave chases)
     for (let i = 0; i < 7; i++) {
       const waveEmoji = createEmojiSprite('🌊', 5)
-      waveEmoji.position.set(-12 + i * 4, 14, 3.5)
+      waveEmoji.position.set(-12 + i * 4, 14, -3.5)
       tsunamiGroup.add(waveEmoji)
     }
     // Foam layer on top
@@ -468,7 +490,7 @@ export default function EscapeTsunami({ onBack }) {
     }
 
     return { scene, camera, renderer }
-  }, [])
+  }, [selectedCharacter])
 
   // ─── SPAWN COINS ─────────────────────────
   const spawnCoin = useCallback(() => {
@@ -652,8 +674,8 @@ export default function EscapeTsunami({ onBack }) {
           // Spawn a wave!
           game.waveActive = true
           game.wavesSpawned++
-          // Wave spawns far ahead of the player and rushes TOWARD them
-          game.tsunami.position.z = game.player.position.z - 80
+          // Wave spawns BEHIND the player and chases them forward
+          game.tsunami.position.z = game.player.position.z + 80
           game.tsunami.position.x = 0
           game.tsunami.visible = true
           // Pick wave type — gets harder as more waves spawn and in higher zones
@@ -687,16 +709,16 @@ export default function EscapeTsunami({ onBack }) {
           if (hasWaveRadarRef.current) setWaveCountdown(0)
         }
       } else {
-        // Wave is active — move it toward the player (increasing z)
+        // Wave is active — move it toward the player (decreasing z, chasing forward)
         const spd = game.freezeTimer > 0 ? game.waveSpeed * 0.3 : game.waveSpeed
-        game.tsunami.position.z += spd * dt
+        game.tsunami.position.z -= spd * dt
         // Wave bobbing animation
         game.tsunami.position.y = Math.sin(time * 0.005) * 1.5
 
         // Check if wave has reached the player
-        const waveFrontZ = game.tsunami.position.z + 3
+        const waveFrontZ = game.tsunami.position.z - 3
         const playerZ = game.player.position.z
-        if (waveFrontZ >= playerZ - 1 && waveFrontZ <= playerZ + 4) {
+        if (waveFrontZ <= playerZ + 1 && waveFrontZ >= playerZ - 4) {
           // Wave is sweeping through player position
           if (playerHiding) {
             game.zoneWavesSurvived++
@@ -746,8 +768,8 @@ export default function EscapeTsunami({ onBack }) {
           game.waveTimer = game.waveInterval
         }
 
-        // If wave passed way beyond player, reset
-        if (game.tsunami.position.z > game.player.position.z + 30) {
+        // If wave passed way beyond player (went too far forward), reset
+        if (game.tsunami.position.z < game.player.position.z - 30) {
           game.waveActive = false
           game.tsunami.visible = false
           game.waveTimer = game.waveInterval
@@ -1162,7 +1184,7 @@ export default function EscapeTsunami({ onBack }) {
         </button>
 
         <div className="text-center z-10">
-          <div className="text-8xl mb-4">🌊🏃💨</div>
+          <div className="text-8xl mb-4">🌊{selectedCharacter}💨</div>
           <h1 className="text-4xl md:text-6xl font-black text-white drop-shadow-lg mb-2">
             ESCAPE TSUNAMI
           </h1>
@@ -1207,11 +1229,38 @@ export default function EscapeTsunami({ onBack }) {
             </div>
           )}
 
+          {/* Character Selection */}
+          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-4 max-w-md mx-auto">
+            <p className="text-yellow-300 font-bold text-sm mb-2">👤 Choose Your Character:</p>
+            <div className="grid grid-cols-8 gap-2">
+              {PLAYER_CHARACTERS.map((char) => (
+                <button
+                  key={char.emoji}
+                  onClick={() => {
+                    setSelectedCharacter(char.emoji)
+                    localStorage.setItem('escapeTsunamiCharacter', char.emoji)
+                  }}
+                  className={`p-2 rounded-lg transition-all ${
+                    selectedCharacter === char.emoji
+                      ? 'bg-cyan-500 scale-110 ring-2 ring-white'
+                      : 'bg-white/10 hover:bg-white/20'
+                  }`}
+                  title={char.name}
+                >
+                  <span className="text-2xl">{char.emoji}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-white text-xs mt-2 text-center">
+              Selected: {PLAYER_CHARACTERS.find(c => c.emoji === selectedCharacter)?.name || 'Runner'}
+            </p>
+          </div>
+
           <button
             onClick={startGame}
             className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-white px-10 py-4 rounded-xl font-black text-2xl shadow-2xl hover:scale-110 transition-all duration-300 border-4 border-white/30"
           >
-            🏃 START RUNNING
+            START RUNNING
           </button>
 
           {highScore > 0 && (
