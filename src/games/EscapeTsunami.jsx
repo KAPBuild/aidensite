@@ -333,106 +333,18 @@ export default function EscapeTsunami({ onBack }) {
       for (let j = 0; j < 3 + area.tier; j++) {
         const ox = (Math.random() - 0.5) * 18
         const oz = startZ - 5 - Math.random() * (CONFIG.AREA_LENGTH - 10)
-        const sz = 1.0 + Math.random() * 0.8 // size scalar
 
-        // Pick obstacle type by tier
-        const roll = Math.random()
-        let obsType
-        if (area.tier <= 2) obsType = roll < 0.55 ? 'boulder' : 'crate'
-        else if (area.tier <= 5) obsType = roll < 0.35 ? 'boulder' : roll < 0.7 ? 'wall' : 'crate'
-        else obsType = roll < 0.3 ? 'bunker' : roll < 0.65 ? 'wall' : 'boulder'
+        // Big, fun emoji obstacle — size grows with zone tier
+        const emojiScale = 2.8 + Math.random() * 2.2 + area.tier * 0.08
+        const emoji = obstacleEmojis[Math.floor(Math.random() * obstacleEmojis.length)]
+        const obs = createEmojiSprite(emoji, emojiScale)
+        // Special zones float their emojis a bit higher for drama
+        const yPos = area.tier >= 6 ? 1.5 + Math.random() * 2 : emojiScale * 0.45
+        obs.position.set(ox, yPos, oz)
+        scene.add(obs)
 
-        // Zone-tinted colours
-        const zoneColor = area.color
-        let bodyColor, accentColor, hitR
-
-        if (obsType === 'boulder') {
-          bodyColor = area.tier >= 6 ? zoneColor : 0x78909C
-          const bGeo = new THREE.SphereGeometry(sz * 1.2, 9, 9)
-          const bMat = new THREE.MeshLambertMaterial({ color: bodyColor })
-          const bMesh = new THREE.Mesh(bGeo, bMat)
-          bMesh.position.set(ox, sz * 1.2, oz)
-          bMesh.castShadow = true
-          scene.add(bMesh)
-          // flat top slab
-          const topGeo = new THREE.BoxGeometry(sz * 0.9, sz * 0.3, sz * 0.9)
-          const topMat = new THREE.MeshLambertMaterial({ color: 0x546E7A })
-          const top = new THREE.Mesh(topGeo, topMat)
-          top.position.set(ox, sz * 2.1, oz)
-          scene.add(top)
-          // circle collision — matches sphere shape well
-          obstacles.push({ x: ox, z: oz, shape: 'circle', radius: sz * 1.25 })
-
-        } else if (obsType === 'crate') {
-          bodyColor = area.tier >= 6 ? zoneColor : 0x8D6E63
-          accentColor = 0xA1887F
-          const cGeo = new THREE.BoxGeometry(sz * 2.2, sz * 2.2, sz * 2.2)
-          const cMat = new THREE.MeshLambertMaterial({ color: bodyColor })
-          const cMesh = new THREE.Mesh(cGeo, cMat)
-          cMesh.position.set(ox, sz * 1.1, oz)
-          cMesh.castShadow = true
-          scene.add(cMesh)
-          // Cross banding
-          const bandH = new THREE.BoxGeometry(sz * 2.25, sz * 0.25, sz * 0.2)
-          const bandMat = new THREE.MeshLambertMaterial({ color: accentColor })
-          const bandTop = new THREE.Mesh(bandH, bandMat)
-          bandTop.position.set(ox, sz * 1.1, oz + sz * 1.1)
-          scene.add(bandTop)
-          // box collision — matches cube shape exactly
-          obstacles.push({ x: ox, z: oz, shape: 'box', hw: sz * 1.1, hd: sz * 1.1 })
-
-        } else if (obsType === 'wall') {
-          bodyColor = area.tier >= 6 ? zoneColor : 0x90A4AE
-          const wGeo = new THREE.BoxGeometry(sz * 3.5, sz * 3, sz * 0.9)
-          const wMat = new THREE.MeshLambertMaterial({ color: bodyColor })
-          const wMesh = new THREE.Mesh(wGeo, wMat)
-          wMesh.position.set(ox, sz * 1.5, oz)
-          wMesh.castShadow = true
-          scene.add(wMesh)
-          // Brick lines
-          for (let row = 0; row < 3; row++) {
-            const lineGeo = new THREE.BoxGeometry(sz * 3.55, 0.1, sz * 0.95)
-            const lineMat = new THREE.MeshLambertMaterial({ color: 0x607D8B })
-            const line = new THREE.Mesh(lineGeo, lineMat)
-            line.position.set(ox, sz * 0.6 + row * sz * 0.9, oz)
-            scene.add(line)
-          }
-          // box collision — tight fit to the wall slab
-          obstacles.push({ x: ox, z: oz, shape: 'box', hw: sz * 1.75, hd: sz * 0.5 })
-
-        } else { // bunker
-          bodyColor = area.tier >= 6 ? zoneColor : 0x546E7A
-          accentColor = 0x37474F
-          // Main body
-          const bkGeo = new THREE.BoxGeometry(sz * 4.5, sz * 2, sz * 2.5)
-          const bkMat = new THREE.MeshLambertMaterial({ color: bodyColor })
-          const bkMesh = new THREE.Mesh(bkGeo, bkMat)
-          bkMesh.position.set(ox, sz * 1, oz)
-          bkMesh.castShadow = true
-          scene.add(bkMesh)
-          // Overhanging roof
-          const rGeo = new THREE.BoxGeometry(sz * 5, sz * 0.4, sz * 3)
-          const rMat = new THREE.MeshLambertMaterial({ color: accentColor })
-          const rMesh = new THREE.Mesh(rGeo, rMat)
-          rMesh.position.set(ox, sz * 2.2, oz)
-          scene.add(rMesh)
-          // Side sandbags
-          for (let sb = -1; sb <= 1; sb += 2) {
-            const sbGeo = new THREE.BoxGeometry(sz * 0.8, sz * 0.6, sz * 2.5)
-            const sbMat = new THREE.MeshLambertMaterial({ color: 0x6D4C41 })
-            const sbMesh = new THREE.Mesh(sbGeo, sbMat)
-            sbMesh.position.set(ox + sb * sz * 2.5, sz * 0.3, oz)
-            scene.add(sbMesh)
-          }
-          // box collision — matches the body footprint
-          obstacles.push({ x: ox, z: oz, shape: 'box', hw: sz * 2.25, hd: sz * 1.25 })
-        }
-
-        // Small emoji badge on top of every obstacle
-        const badge = obstacleEmojis[Math.floor(Math.random() * obstacleEmojis.length)]
-        const badgeSprite = createEmojiSprite(badge, 1.8)
-        badgeSprite.position.set(ox, sz * 3 + 0.5, oz)
-        scene.add(badgeSprite)
+        // Circle collision sized to the sprite footprint
+        obstacles.push({ x: ox, z: oz, shape: 'circle', radius: emojiScale * 0.42 })
       }
 
       // Side decorations
