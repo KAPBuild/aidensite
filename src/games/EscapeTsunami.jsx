@@ -1430,100 +1430,112 @@ export default function EscapeTsunami({ onBack }) {
   // MENU
   if (gameState === 'menu') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-600 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <button onClick={onBack} className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-bold backdrop-blur-sm z-10">
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-600 flex flex-col overflow-hidden">
+        <button onClick={onBack} className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-bold backdrop-blur-sm z-20">
           ← Back
         </button>
 
-        <div className="text-center z-10">
-          <div className="text-8xl mb-4">🌊{selectedCharacter}💨</div>
-          <h1 className="text-4xl md:text-6xl font-black text-white drop-shadow-lg mb-2">
-            ESCAPE TSUNAMI
-          </h1>
-          <p className="text-xl text-cyan-200 font-bold mb-4">Emoji Edition</p>
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto flex flex-col items-center px-4 pt-16 pb-4">
+          <div className="text-center w-full max-w-md mx-auto">
+            <div className="text-7xl mb-3">🌊{selectedCharacter}💨</div>
+            <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg mb-1">
+              ESCAPE TSUNAMI
+            </h1>
+            <p className="text-lg text-cyan-200 font-bold mb-4">Emoji Edition</p>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-4 max-w-md mx-auto text-left text-white">
-            <p className="font-bold text-yellow-300 mb-2">🎯 GOAL:</p>
-            <p className="mb-2">Run through ALL 15 zones to escape the tsunami! Can you reach the Forbidden zone?</p>
-            <p className="font-bold text-yellow-300 mb-2">🎮 HOW TO PLAY:</p>
-            <ul className="text-sm space-y-1">
-              <li>• Run forward (↑ or W) toward the finish</li>
-              <li>• Tsunami waves come every few seconds!</li>
-              <li>• Step into a 🟢 glowing green shelter zone to survive waves</li>
-              <li>• Collect 💰 coins for upgrades</li>
-              <li>• Higher zones = unique hazards + bigger rewards!</li>
-              <li>• Reach the 🏁 finish to win the round!</li>
-            </ul>
-          </div>
+            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-4 text-left text-white">
+              <p className="font-bold text-yellow-300 mb-2">🎯 GOAL:</p>
+              <p className="mb-2">Run through ALL 15 zones to escape the tsunami! Can you reach the Forbidden zone?</p>
+              <p className="font-bold text-yellow-300 mb-2">🎮 HOW TO PLAY:</p>
+              <ul className="text-sm space-y-1">
+                <li>• Run forward (↑ or W) toward the finish</li>
+                <li>• Tsunami waves come every few seconds!</li>
+                <li>• Step into a 🟢 glowing green shelter zone to survive waves</li>
+                <li>• Collect 💰 coins for upgrades</li>
+                <li>• Higher zones = unique hazards + bigger rewards!</li>
+                <li>• Reach the 🏁 finish to win the round!</li>
+              </ul>
+            </div>
 
-          {/* Zone Progress */}
-          <div className="flex flex-wrap justify-center gap-1.5 mb-4 max-w-lg">
-            {AREAS.map((a, i) => {
-              const reached = i <= milestones.highestZone
-              return (
-                <div key={a.name} className={`rounded-lg px-2 py-1.5 text-center backdrop-blur-sm transition-all ${reached ? 'bg-white/20 border border-white/30' : 'bg-white/5 opacity-50'}`}>
-                  <span className="text-lg">{reached ? a.emoji : '🔒'}</span>
-                  <span className={`text-xs font-bold ml-1 ${reached ? 'text-white' : 'text-gray-400'}`}>{a.name}</span>
+            {/* Zone Progress */}
+            <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+              {AREAS.map((a, i) => {
+                const reached = i <= milestones.highestZone
+                return (
+                  <div key={a.name} className={`rounded-lg px-2 py-1.5 text-center backdrop-blur-sm transition-all ${reached ? 'bg-white/20 border border-white/30' : 'bg-white/5 opacity-50'}`}>
+                    <span className="text-lg">{reached ? a.emoji : '🔒'}</span>
+                    <span className={`text-xs font-bold ml-1 ${reached ? 'text-white' : 'text-gray-400'}`}>{a.name}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Badges */}
+            {milestones.badges && milestones.badges.length > 0 && (
+              <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 mb-4">
+                <p className="text-yellow-300 font-bold text-sm mb-1">🏅 Badges Earned:</p>
+                <div className="flex flex-wrap gap-2">
+                  {milestones.badges.map((b, i) => (
+                    <span key={i} className="bg-white/10 rounded-lg px-2 py-1 text-white text-xs font-bold">{b}</span>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )}
 
-          {/* Badges */}
-          {milestones.badges && milestones.badges.length > 0 && (
-            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 mb-4 max-w-md mx-auto">
-              <p className="text-yellow-300 font-bold text-sm mb-1">🏅 Badges Earned:</p>
-              <div className="flex flex-wrap gap-2">
-                {milestones.badges.map((b, i) => (
-                  <span key={i} className="bg-white/10 rounded-lg px-2 py-1 text-white text-xs font-bold">{b}</span>
+            {/* Character Selection */}
+            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-4">
+              <p className="text-yellow-300 font-bold text-sm mb-2">👤 Choose Your Character:</p>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                {PLAYER_CHARACTERS.map((char) => (
+                  <button
+                    key={char.emoji}
+                    onClick={() => {
+                      setSelectedCharacter(char.emoji)
+                      localStorage.setItem('escapeTsunamiCharacter', char.emoji)
+                    }}
+                    className={`p-1.5 rounded-lg transition-all ${
+                      selectedCharacter === char.emoji
+                        ? 'bg-cyan-500 scale-110 ring-2 ring-white'
+                        : 'bg-white/10 hover:bg-white/20'
+                    }`}
+                    title={char.name}
+                  >
+                    <span className="text-xl">{char.emoji}</span>
+                  </button>
                 ))}
               </div>
+              <p className="text-white text-xs mt-2 text-center">
+                Selected: {PLAYER_CHARACTERS.find(c => c.emoji === selectedCharacter)?.name || 'Runner'}
+              </p>
             </div>
-          )}
 
-          {/* Character Selection */}
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-4 max-w-md mx-auto">
-            <p className="text-yellow-300 font-bold text-sm mb-2">👤 Choose Your Character:</p>
-            <div className="grid grid-cols-8 gap-2">
-              {PLAYER_CHARACTERS.map((char) => (
-                <button
-                  key={char.emoji}
-                  onClick={() => {
-                    setSelectedCharacter(char.emoji)
-                    localStorage.setItem('escapeTsunamiCharacter', char.emoji)
-                  }}
-                  className={`p-2 rounded-lg transition-all ${
-                    selectedCharacter === char.emoji
-                      ? 'bg-cyan-500 scale-110 ring-2 ring-white'
-                      : 'bg-white/10 hover:bg-white/20'
-                  }`}
-                  title={char.name}
-                >
-                  <span className="text-2xl">{char.emoji}</span>
-                </button>
-              ))}
+            {highScore > 0 && (
+              <div className="mb-3 text-yellow-300 font-bold text-lg">
+                Best Score: {highScore}
+              </div>
+            )}
+
+            <div className="text-blue-200 text-sm mb-2">
+              Desktop: WASD or Arrow Keys | Mobile: Touch joystick
             </div>
-            <p className="text-white text-xs mt-2 text-center">
-              Selected: {PLAYER_CHARACTERS.find(c => c.emoji === selectedCharacter)?.name || 'Runner'}
-            </p>
           </div>
+        </div>
 
+        {/* Sticky bottom action bar */}
+        <div className="flex-shrink-0 flex gap-3 justify-center px-4 py-4 bg-blue-900/80 backdrop-blur-sm border-t border-white/10">
+          <button
+            onClick={() => setGameState('shop')}
+            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white px-6 py-4 rounded-xl font-black text-lg shadow-xl hover:scale-105 transition-all duration-200 border-2 border-white/20"
+          >
+            🏪 Shop
+          </button>
           <button
             onClick={startGame}
-            className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-white px-10 py-4 rounded-xl font-black text-2xl shadow-2xl hover:scale-110 transition-all duration-300 border-4 border-white/30"
+            className="flex-1 max-w-xs bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-white px-8 py-4 rounded-xl font-black text-xl shadow-2xl hover:scale-105 transition-all duration-200 border-2 border-white/30"
           >
             START RUNNING
           </button>
-
-          {highScore > 0 && (
-            <div className="mt-4 text-yellow-300 font-bold text-lg">
-              Best Score: {highScore}
-            </div>
-          )}
-
-          <div className="mt-4 text-blue-200 text-sm">
-            Desktop: WASD or Arrow Keys | Mobile: Touch joystick
-          </div>
         </div>
       </div>
     )
@@ -1535,7 +1547,7 @@ export default function EscapeTsunami({ onBack }) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-800 to-purple-600 flex flex-col items-center justify-center p-4">
         <h1 className="text-5xl font-black text-white mb-2">🏪 SHOP</h1>
-        <p className="text-yellow-300 text-2xl font-bold mb-2">Round {roundNum} Complete!</p>
+        {roundNum > 0 && <p className="text-yellow-300 text-2xl font-bold mb-2">Round {roundNum} Complete!</p>}
         <p className="text-white text-xl font-bold mb-2">💰 {coins} Coins</p>
         {zoneBadgeEarned && (
           <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-2 rounded-xl font-black text-lg animate-pulse mb-2">
@@ -1641,6 +1653,12 @@ export default function EscapeTsunami({ onBack }) {
         </div>
 
         <div className="flex gap-4 flex-wrap justify-center">
+          <button
+            onClick={() => setGameState('menu')}
+            className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition-all"
+          >
+            ← Menu
+          </button>
           <button
             onClick={() => setGameState('wheel')}
             className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition-all"
