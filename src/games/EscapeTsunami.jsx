@@ -3,7 +3,7 @@ import * as THREE from 'three'
 
 // ─── CONFIG ────────────────────────────────────────────────
 const CONFIG = {
-  PLAYER_BASE_SPEED: 0.15,
+  PLAYER_BASE_SPEED: 0.32,
   TSUNAMI_SLOW: 0.05,
   TSUNAMI_MEDIUM: 0.08,
   TSUNAMI_FAST: 0.12,
@@ -397,36 +397,21 @@ export default function EscapeTsunami({ onBack }) {
         gap.receiveShadow = true
         scene.add(gap)
 
-        // Shelter 3D bunkers in the gap
+        // Shelter emoji houses in the gap
+        const shelterEmojis = ['🛖', '🏠', '🏡']
         for (let s = 0; s < 3; s++) {
           const shelterX = -7 + s * 7
           const shelterZ = gapZ - CONFIG.HIDING_GAP / 2
 
-          // Main bunker body
-          const sBodyGeo = new THREE.BoxGeometry(5, 3.2, 4.5)
-          const sBodyMat = new THREE.MeshLambertMaterial({ color: 0x4E342E })
-          const sBody = new THREE.Mesh(sBodyGeo, sBodyMat)
-          sBody.position.set(shelterX, 1.6, shelterZ)
-          sBody.castShadow = true
-          sBody.receiveShadow = true
-          scene.add(sBody)
+          // Big emoji house sprite
+          const houseSprite = createEmojiSprite(shelterEmojis[s], 5.5)
+          houseSprite.position.set(shelterX, 3.2, shelterZ)
+          scene.add(houseSprite)
 
-          // Wide overhanging roof
-          const sRoofGeo = new THREE.BoxGeometry(6.2, 0.5, 5.5)
-          const sRoofMat = new THREE.MeshLambertMaterial({ color: 0x3E2723 })
-          const sRoof = new THREE.Mesh(sRoofGeo, sRoofMat)
-          sRoof.position.set(shelterX, 3.45, shelterZ)
-          sRoof.castShadow = true
-          scene.add(sRoof)
-
-          // Sandbag base around shelter
-          for (let side = -1; side <= 1; side += 2) {
-            const bagGeo = new THREE.BoxGeometry(0.9, 0.7, 4.5)
-            const bagMat = new THREE.MeshLambertMaterial({ color: 0x795548 })
-            const bag = new THREE.Mesh(bagGeo, bagMat)
-            bag.position.set(shelterX + side * 2.9, 0.35, shelterZ)
-            scene.add(bag)
-          }
+          // Floating SAFE label above the house
+          const safeSprite = createEmojiSprite('🛡️', 2)
+          safeSprite.position.set(shelterX, 7, shelterZ)
+          scene.add(safeSprite)
 
           // Green glowing ground disc — the "safe zone" marker players see clearly
           const discGeo = new THREE.CircleGeometry(3.2, 32)
@@ -444,15 +429,10 @@ export default function EscapeTsunami({ onBack }) {
           ring.position.set(shelterX, 0.1, shelterZ)
           scene.add(ring)
 
-          // Green point light casting glow on bunker
+          // Green point light casting glow
           const shelterLight = new THREE.PointLight(0x00FF88, 1.2, 10)
           shelterLight.position.set(shelterX, 4, shelterZ)
           scene.add(shelterLight)
-
-          // SAFE ZONE floating label
-          const safeSprite = createEmojiSprite('🛡️', 2)
-          safeSprite.position.set(shelterX, 5.5, shelterZ)
-          scene.add(safeSprite)
 
           shelters.push({ x: shelterX, z: shelterZ, radius: 3.2 })
         }
@@ -851,8 +831,8 @@ export default function EscapeTsunami({ onBack }) {
         const spd = game.freezeTimer > 0 ? game.waveSpeed * 0.3 : game.waveSpeed
         game.tsunami.position.z += spd * dt
         // Wave bobbing + sway animation
-        game.tsunami.position.y = Math.sin(time * 0.005) * 1.8
-        game.tsunami.rotation.z = Math.sin(time * 0.003) * 0.025
+        game.tsunami.position.y = Math.sin(time * 0.003) * 0.3
+        game.tsunami.rotation.z = Math.sin(time * 0.002) * 0.008
 
         // Check if wave front (+z face) has reached the player
         const waveFrontZ = game.tsunami.position.z + 3
