@@ -152,7 +152,7 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
     return localStorage.getItem('escapeTsunamiCharacter') || '🧑'
   })
   const [score, setScore] = useState(0)
-  const [coins, setCoins] = useState(Infinity)
+  const [coins, setCoins] = useState(0)
   const [speedLevel, setSpeedLevel] = useState(0)
   const [currentArea, setCurrentArea] = useState('Common')
   const [tsunamiWarning, setTsunamiWarning] = useState('')
