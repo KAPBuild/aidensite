@@ -7,6 +7,12 @@ import EscapeTsunami from '../games/EscapeTsunami'
 
 export default function GamesSection() {
   const [selectedGame, setSelectedGame] = useState(null)
+  const [tsunamiStartState, setTsunamiStartState] = useState('menu')
+
+  const openTsunami = (startState = 'menu') => {
+    setTsunamiStartState(startState)
+    setSelectedGame('escapetsunami')
+  }
 
   if (selectedGame) {
     return (
@@ -15,7 +21,7 @@ export default function GamesSection() {
         {selectedGame === 'basketball' && <BasketballGame onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'demonhunter' && <DemonHunter onBack={() => setSelectedGame(null)} />}
         {selectedGame === 'desertnights' && <DesertNights onBack={() => setSelectedGame(null)} />}
-        {selectedGame === 'escapetsunami' && <EscapeTsunami onBack={() => setSelectedGame(null)} />}
+        {selectedGame === 'escapetsunami' && <EscapeTsunami onBack={() => setSelectedGame(null)} initialState={tsunamiStartState} />}
       </>
     )
   }
@@ -35,13 +41,25 @@ export default function GamesSection() {
 
         {/* Games Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <GameCard
-            emoji="🌊"
-            title="Escape Tsunami"
-            description="Run through 9 emoji zones to escape the tsunami! Can you reach Godly?"
-            onClick={() => setSelectedGame('escapetsunami')}
-            color="from-cyan-600 to-blue-800"
-          />
+          <div className="bg-gradient-to-br from-cyan-600 to-blue-800 rounded-2xl shadow-2xl p-8 text-white border-4 border-white flex flex-col">
+            <div className="text-6xl mb-4">🌊</div>
+            <h3 className="text-3xl font-black mb-3">Escape Tsunami</h3>
+            <p className="text-lg font-semibold mb-6">Run through 9 emoji zones to escape the tsunami! Can you reach Godly?</p>
+            <div className="flex gap-3 mt-auto">
+              <button
+                onClick={() => openTsunami('menu')}
+                className="flex-1 bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-lg hover:scale-105 transition-transform"
+              >
+                Play Now ▶
+              </button>
+              <button
+                onClick={() => openTsunami('shop')}
+                className="bg-purple-500 hover:bg-purple-400 text-white px-4 py-2 rounded-lg font-bold text-lg hover:scale-105 transition-transform"
+              >
+                🏪 Shop
+              </button>
+            </div>
+          </div>
           <GameCard
             emoji="🏜️"
             title="99 Nights in the Desert"

@@ -59,6 +59,8 @@ const SPIN_WHEEL_ITEMS = [
   { name: '🍀 10x Luck',     weight: 1,  type: 'luck',    multiplier: 10 },
 ]
 
+const SPIN_WHEEL_TOTAL_WEIGHT = SPIN_WHEEL_ITEMS.reduce((a, b) => a + b.weight, 0)
+
 const GALAXY_BLOCK_REWARDS = [
   '🌟 Galaxy Star — 500 Coins!',
   '🪐 Saturn Ring — 2x Speed!',
@@ -107,6 +109,9 @@ const PLAYER_CHARACTERS = [
 const SHOP_ITEMS = {
   shieldRecharge: { name: '🛡️ Shield Recharge', cost: 300, desc: 'Auto-restore shield once per round' },
   waveRadar: { name: '📡 Wave Radar', cost: 500, desc: 'Shows countdown before next wave' },
+  rainbowCarpet: { name: '🌈 Rainbow Carpet', cost: 10000, desc: 'Permanent 1.5x speed boost + rainbow aura' },
+  waveShield: { name: '🌊🛡️ Wave Shield', cost: 5000, desc: 'Blocks any wave hit — 4s cooldown between blocks' },
+  adminPanel: { name: '👑 Admin Panel', cost: 1000000, desc: 'God-tier control: stop waves, nuke, invincibility' },
 }
 
 // Create emoji texture
@@ -133,7 +138,7 @@ function createEmojiSprite(emoji, scale = 2) {
   return sprite
 }
 
-export default function EscapeTsunami({ onBack }) {
+export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
   const containerRef = useRef(null)
   const sceneRef = useRef(null)
   const rendererRef = useRef(null)
@@ -141,7 +146,7 @@ export default function EscapeTsunami({ onBack }) {
   const gameRef = useRef(null)
   const animFrameRef = useRef(null)
 
-  const [gameState, setGameState] = useState('menu')
+  const [gameState, setGameState] = useState(initialState)
   const [selectedCharacter, setSelectedCharacter] = useState(() => {
     return localStorage.getItem('escapeTsunamiCharacter') || '🧑'
   })
@@ -181,6 +186,13 @@ export default function EscapeTsunami({ onBack }) {
   const [earthquakeShake, setEarthquakeShake] = useState(false)
   const [disasterWarning, setDisasterWarning] = useState('')
   const [disasterLightningWarnings, setDisasterLightningWarnings] = useState([])
+  const [hasAdminPanel, setHasAdminPanel] = useState(false)
+  const [hasRainbowCarpet, setHasRainbowCarpet] = useState(false)
+  const [hasWaveShield, setHasWaveShield] = useState(false)
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false)
+  const [stopWavesTimeLeft, setStopWavesTimeLeft] = useState(0)
+  const [invincibleTimeLeft, setInvincibleTimeLeft] = useState(0)
+  const [waveShieldCooldownLeft, setWaveShieldCooldownLeft] = useState(0)
 
   // Mobile joystick state — use refs so touch handlers always have fresh values
   const joystickActiveRef = useRef(false)
@@ -198,6 +210,8 @@ export default function EscapeTsunami({ onBack }) {
   const hasWaveRadarRef = useRef(hasWaveRadar)
   const milestonesRef = useRef(milestones)
   const luckMultiplierRef = useRef(luckMultiplier)
+  const hasRainbowCarpetRef = useRef(hasRainbowCarpet)
+  const hasWaveShieldRef = useRef(hasWaveShield)
 
   useEffect(() => { coinsRef.current = coins }, [coins])
   useEffect(() => { scoreRef.current = score }, [score])
@@ -208,6 +222,8 @@ export default function EscapeTsunami({ onBack }) {
   useEffect(() => { hasWaveRadarRef.current = hasWaveRadar }, [hasWaveRadar])
   useEffect(() => { milestonesRef.current = milestones }, [milestones])
   useEffect(() => { luckMultiplierRef.current = luckMultiplier }, [luckMultiplier])
+  useEffect(() => { hasRainbowCarpetRef.current = hasRainbowCarpet }, [hasRainbowCarpet])
+  useEffect(() => { hasWaveShieldRef.current = hasWaveShield }, [hasWaveShield])
 
   // ─── CREATE 3D SCENE ──────────────────────────────
   const initScene = useCallback(() => {
@@ -595,6 +611,9 @@ export default function EscapeTsunami({ onBack }) {
       rarityBoostActive: false,
       rarityBoostTimer: 0,
       shieldRechargeUsed: false,
+      stopWavesTimer: 0,
+      invincibleTimer: 0,
+      waveShieldCooldown: 0,
       // Disasters
       disasterTimer: 25000 + Math.random() * 20000,
       earthquakeTimer: 0,
@@ -699,7 +718,8 @@ export default function EscapeTsunami({ onBack }) {
       const speedMult = 1 + speedLevelRef.current * 0.2
       const boostMult = game.speedBoostTimer > 0 ? 1.5 : 1
       const gravMult = game.gravityMult || 1
-      const speed = CONFIG.PLAYER_BASE_SPEED * speedMult * boostMult * gravMult * dt
+      const carpetMult = hasRainbowCarpetRef.current ? 1.5 : 1
+      const speed = CONFIG.PLAYER_BASE_SPEED * speedMult * boostMult * gravMult * carpetMult * dt
 
       let moveX = 0
       let moveZ = 0
@@ -785,10 +805,12 @@ export default function EscapeTsunami({ onBack }) {
       }
 
       if (!game.waveActive) {
-        // Count down to next wave
-        const timerDrain = game.freezeTimer > 0 ? dt * 16.67 * 0.3 : dt * 16.67
-        game.waveTimer -= timerDrain
-        if (game.waveTimer <= 0) {
+        // Count down to next wave — paused when stop-waves admin power is active
+        if (game.stopWavesTimer <= 0) {
+          const timerDrain = game.freezeTimer > 0 ? dt * 16.67 * 0.3 : dt * 16.67
+          game.waveTimer -= timerDrain
+        }
+        if (game.waveTimer <= 0 && game.stopWavesTimer <= 0) {
           // Spawn a wave!
           game.waveActive = true
           game.wavesSpawned++
@@ -843,6 +865,15 @@ export default function EscapeTsunami({ onBack }) {
             game.zoneWavesSurvived++
             setMessage('🛖 Safe! The wave passed over!')
             setTimeout(() => setMessage(''), 2000)
+          } else if (game.invincibleTimer > 0) {
+            game.zoneWavesSurvived++
+            setMessage('👑 INVINCIBLE! Wave ignored!')
+            setTimeout(() => setMessage(''), 2000)
+          } else if (hasWaveShieldRef.current && game.waveShieldCooldown <= 0) {
+            game.zoneWavesSurvived++
+            game.waveShieldCooldown = 4000
+            setMessage('🌊🛡️ Wave Shield blocked! (4s cooldown)')
+            setTimeout(() => setMessage(''), 2500)
           } else if (hasShieldRef.current) {
             game.zoneWavesSurvived++
             setHasShield(false)
@@ -1160,6 +1191,24 @@ export default function EscapeTsunami({ onBack }) {
         game.rarityBoostTimer -= dt * 16.67
         if (game.rarityBoostTimer <= 0) game.rarityBoostActive = false
       }
+      if (game.stopWavesTimer > 0) {
+        game.stopWavesTimer -= dt * 16.67
+        setStopWavesTimeLeft(Math.ceil(game.stopWavesTimer / 1000))
+      } else {
+        setStopWavesTimeLeft(0)
+      }
+      if (game.invincibleTimer > 0) {
+        game.invincibleTimer -= dt * 16.67
+        setInvincibleTimeLeft(Math.ceil(game.invincibleTimer / 1000))
+      } else {
+        setInvincibleTimeLeft(0)
+      }
+      if (game.waveShieldCooldown > 0) {
+        game.waveShieldCooldown -= dt * 16.67
+        setWaveShieldCooldownLeft(Math.ceil(game.waveShieldCooldown / 1000))
+      } else {
+        setWaveShieldCooldownLeft(0)
+      }
 
       // ─── Win condition ─────
       if (game.player.position.z <= game.finishZ) {
@@ -1404,6 +1453,54 @@ export default function EscapeTsunami({ onBack }) {
       setHasWaveRadar(true)
     }
   }
+  const buyRainbowCarpet = () => {
+    if (coins >= SHOP_ITEMS.rainbowCarpet.cost && !hasRainbowCarpet) {
+      setCoins(prev => prev - SHOP_ITEMS.rainbowCarpet.cost)
+      setHasRainbowCarpet(true)
+    }
+  }
+  const buyWaveShield = () => {
+    if (coins >= SHOP_ITEMS.waveShield.cost && !hasWaveShield) {
+      setCoins(prev => prev - SHOP_ITEMS.waveShield.cost)
+      setHasWaveShield(true)
+    }
+  }
+  const buyAdminPanel = () => {
+    if (coins >= SHOP_ITEMS.adminPanel.cost && !hasAdminPanel) {
+      setCoins(prev => prev - SHOP_ITEMS.adminPanel.cost)
+      setHasAdminPanel(true)
+    }
+  }
+
+  // ─── ADMIN PANEL POWERS ────────────────
+  const activateStopWaves = () => {
+    if (!gameRef.current) return
+    gameRef.current.stopWavesTimer = 60000
+    if (gameRef.current.waveActive) {
+      gameRef.current.waveActive = false
+      gameRef.current.tsunami.visible = false
+      gameRef.current.waveTimer = gameRef.current.waveInterval
+    }
+    setAdminPanelOpen(false)
+    setMessage('🛑 Waves stopped for 60s!')
+    setTimeout(() => setMessage(''), 2500)
+  }
+  const activateNukeWaves = () => {
+    if (!gameRef.current) return
+    gameRef.current.waveActive = false
+    if (gameRef.current.tsunami) gameRef.current.tsunami.visible = false
+    gameRef.current.waveTimer = gameRef.current.waveInterval
+    setAdminPanelOpen(false)
+    setMessage('💥 WAVES NUKED!')
+    setTimeout(() => setMessage(''), 2000)
+  }
+  const activateInvincibility = () => {
+    if (!gameRef.current) return
+    gameRef.current.invincibleTimer = 60000
+    setAdminPanelOpen(false)
+    setMessage('👑 INVINCIBILITY active for 60s!')
+    setTimeout(() => setMessage(''), 2500)
+  }
 
   // ─── RENDER ────────────────────────────
 
@@ -1586,6 +1683,69 @@ export default function EscapeTsunami({ onBack }) {
             </div>
           )}
 
+          {!hasRainbowCarpet && (
+            <button
+              onClick={buyRainbowCarpet}
+              disabled={coins < SHOP_ITEMS.rainbowCarpet.cost}
+              className={`p-4 rounded-xl text-left transition-all ${
+                coins >= SHOP_ITEMS.rainbowCarpet.cost ? 'bg-gradient-to-r from-pink-600/40 to-yellow-500/40 hover:from-pink-500/50 border border-pink-400/40' : 'bg-white/5 opacity-50'
+              }`}
+            >
+              <div className="text-2xl mb-1">{SHOP_ITEMS.rainbowCarpet.name}</div>
+              <div className="text-white font-bold text-sm">{SHOP_ITEMS.rainbowCarpet.desc}</div>
+              <div className="text-yellow-300 font-bold text-sm">Cost: 10,000 coins</div>
+            </button>
+          )}
+          {hasRainbowCarpet && (
+            <div className="p-4 rounded-xl bg-green-500/20 text-green-300 font-bold text-sm">
+              🌈 Rainbow Carpet — OWNED
+            </div>
+          )}
+
+          {!hasWaveShield && (
+            <button
+              onClick={buyWaveShield}
+              disabled={coins < SHOP_ITEMS.waveShield.cost}
+              className={`p-4 rounded-xl text-left transition-all ${
+                coins >= SHOP_ITEMS.waveShield.cost ? 'bg-gradient-to-r from-cyan-700/40 to-blue-700/40 hover:from-cyan-600/50 border border-cyan-400/40' : 'bg-white/5 opacity-50'
+              }`}
+            >
+              <div className="text-2xl mb-1">{SHOP_ITEMS.waveShield.name}</div>
+              <div className="text-white font-bold text-sm">{SHOP_ITEMS.waveShield.desc}</div>
+              <div className="text-yellow-300 font-bold text-sm">Cost: 5,000 coins</div>
+            </button>
+          )}
+          {hasWaveShield && (
+            <div className="p-4 rounded-xl bg-green-500/20 text-green-300 font-bold text-sm">
+              🌊🛡️ Wave Shield — OWNED
+            </div>
+          )}
+
+          {/* ─── ADMIN PANEL ─── */}
+          <div className="border-t border-white/20 pt-3 mt-1">
+            <p className="text-red-300 font-bold text-sm mb-2">👑 God Tier</p>
+            {!hasAdminPanel && (
+              <button
+                onClick={buyAdminPanel}
+                disabled={coins < SHOP_ITEMS.adminPanel.cost}
+                className={`w-full p-4 rounded-xl text-left transition-all ${
+                  coins >= SHOP_ITEMS.adminPanel.cost
+                    ? 'bg-gradient-to-r from-red-700/60 to-yellow-600/60 hover:from-red-600/70 border-2 border-yellow-400/60 animate-pulse'
+                    : 'bg-white/5 opacity-50'
+                }`}
+              >
+                <div className="text-xl mb-1">👑 Admin Panel</div>
+                <div className="text-white font-bold text-sm">God-tier control: stop waves 60s, nuke waves, 1-min invincibility</div>
+                <div className="text-yellow-300 font-bold text-sm">Cost: 1,000,000 coins</div>
+              </button>
+            )}
+            {hasAdminPanel && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-yellow-600/30 to-red-600/30 border border-yellow-400/50 text-yellow-300 font-bold text-sm">
+                👑 Admin Panel — OWNED (use in-game)
+              </div>
+            )}
+          </div>
+
           {/* ─── PACKS ─── */}
           <div className="border-t border-white/20 pt-3 mt-1">
             <p className="text-yellow-300 font-bold text-sm mb-2">🎁 Value Packs</p>
@@ -1693,8 +1853,9 @@ export default function EscapeTsunami({ onBack }) {
 
         <div className="grid grid-cols-2 gap-1 max-w-sm mb-4 text-xs">
           {SPIN_WHEEL_ITEMS.map((item, i) => (
-            <div key={i} className="text-white bg-white/10 rounded px-2 py-1">
-              {item.name}
+            <div key={i} className="text-white bg-white/10 rounded px-2 py-1 flex justify-between items-center gap-2">
+              <span>{item.name}</span>
+              <span className="text-yellow-300 font-bold shrink-0">{((item.weight / SPIN_WHEEL_TOTAL_WEIGHT) * 100).toFixed(1)}%</span>
             </div>
           ))}
         </div>
@@ -1827,6 +1988,14 @@ export default function EscapeTsunami({ onBack }) {
           {gameRef.current?.galaxySlapActive && <div className="text-purple-300 font-bold">🪐 Galaxy Slap!</div>}
           {gameRef.current?.rarityBoostActive && <div className="text-pink-300 font-bold">💎 2x Coins!</div>}
           {luckMultiplier > 1 && <div className="text-green-300 font-bold text-xs">🍀 {luckMultiplier}x Luck</div>}
+          {hasRainbowCarpet && <div className="text-pink-300 font-bold text-xs">🌈 Carpet</div>}
+          {hasWaveShield && (
+            <div className={`font-bold text-xs ${waveShieldCooldownLeft > 0 ? 'text-gray-400' : 'text-cyan-300'}`}>
+              🌊🛡️ {waveShieldCooldownLeft > 0 ? `CD ${waveShieldCooldownLeft}s` : 'Ready'}
+            </div>
+          )}
+          {invincibleTimeLeft > 0 && <div className="text-yellow-300 font-bold text-xs animate-pulse">👑 Invincible {invincibleTimeLeft}s</div>}
+          {stopWavesTimeLeft > 0 && <div className="text-green-400 font-bold text-xs animate-pulse">🛑 Waves stopped {stopWavesTimeLeft}s</div>}
         </div>
       </div>
 
@@ -1937,6 +2106,52 @@ export default function EscapeTsunami({ onBack }) {
         />
         <div className="absolute text-xs text-white font-bold bottom-1">MOVE</div>
       </div>
+
+      {/* Admin Panel button — visible during gameplay if owned */}
+      {hasAdminPanel && (
+        <button
+          onClick={() => setAdminPanelOpen(true)}
+          className="absolute bottom-8 right-8 bg-gradient-to-r from-yellow-500 to-red-500 hover:from-yellow-400 hover:to-red-400 text-white px-4 py-2 rounded-xl font-black text-sm z-20 shadow-xl border-2 border-white/30 md:bottom-4 md:right-16"
+        >
+          👑 ADMIN
+        </button>
+      )}
+
+      {/* Admin Panel modal */}
+      {adminPanelOpen && (
+        <div className="absolute inset-0 bg-black/70 z-40 flex items-center justify-center" onClick={() => setAdminPanelOpen(false)}>
+          <div className="bg-gradient-to-br from-gray-900 to-red-950 border-2 border-yellow-400 rounded-2xl p-6 max-w-xs w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h2 className="text-2xl font-black text-yellow-300 mb-1 text-center">👑 Admin Panel</h2>
+            <p className="text-gray-400 text-xs text-center mb-4">God-tier powers</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={activateStopWaves}
+                className="w-full p-3 rounded-xl bg-gradient-to-r from-green-700 to-teal-700 hover:from-green-600 hover:to-teal-600 text-white font-bold text-left border border-green-400/40"
+              >
+                <div className="text-lg">🛑 Stop Waves — 60s</div>
+                <div className="text-xs text-green-200">Pauses all wave spawning for 60 seconds</div>
+              </button>
+              <button
+                onClick={activateNukeWaves}
+                className="w-full p-3 rounded-xl bg-gradient-to-r from-orange-700 to-red-700 hover:from-orange-600 hover:to-red-600 text-white font-bold text-left border border-orange-400/40"
+              >
+                <div className="text-lg">💥 Nuke All Waves</div>
+                <div className="text-xs text-orange-200">Instantly destroys current wave &amp; resets timer</div>
+              </button>
+              <button
+                onClick={activateInvincibility}
+                className="w-full p-3 rounded-xl bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white font-bold text-left border border-yellow-400/40"
+              >
+                <div className="text-lg">⭐ Invincibility — 1 min</div>
+                <div className="text-xs text-yellow-200">Ignore all wave hits for 60 seconds</div>
+              </button>
+            </div>
+            <button onClick={() => setAdminPanelOpen(false)} className="w-full mt-4 bg-white/10 hover:bg-white/20 text-white py-2 rounded-xl font-bold text-sm">
+              ✕ Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={onBack}
