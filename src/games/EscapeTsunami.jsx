@@ -57,6 +57,7 @@ const SPIN_WHEEL_ITEMS = [
   { name: '🍀 2x Luck',      weight: 6,  type: 'luck',    multiplier: 2 },
   { name: '🍀 5x Luck',      weight: 3,  type: 'luck',    multiplier: 5 },
   { name: '🍀 10x Luck',     weight: 1,  type: 'luck',    multiplier: 10 },
+  { name: '∞ Infinity Lucky Block', weight: 8.033e-21, type: 'infinity_block', displayChance: '0.00000000000000000000658469363926470474946' },
 ]
 
 const SPIN_WHEEL_TOTAL_WEIGHT = SPIN_WHEEL_ITEMS.reduce((a, b) => a + b.weight, 0)
@@ -151,7 +152,7 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
     return localStorage.getItem('escapeTsunamiCharacter') || '🧑'
   })
   const [score, setScore] = useState(0)
-  const [coins, setCoins] = useState(0)
+  const [coins, setCoins] = useState(Infinity)
   const [speedLevel, setSpeedLevel] = useState(0)
   const [currentArea, setCurrentArea] = useState('Common')
   const [tsunamiWarning, setTsunamiWarning] = useState('')
@@ -193,6 +194,9 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
   const [stopWavesTimeLeft, setStopWavesTimeLeft] = useState(0)
   const [invincibleTimeLeft, setInvincibleTimeLeft] = useState(0)
   const [waveShieldCooldownLeft, setWaveShieldCooldownLeft] = useState(0)
+  const [customSpeedMult, setCustomSpeedMult] = useState(1)
+  const [speedInput, setSpeedInput] = useState('1')
+  const customSpeedMultRef = useRef(1)
 
   // Mobile joystick state — use refs so touch handlers always have fresh values
   const joystickActiveRef = useRef(false)
@@ -224,6 +228,7 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
   useEffect(() => { luckMultiplierRef.current = luckMultiplier }, [luckMultiplier])
   useEffect(() => { hasRainbowCarpetRef.current = hasRainbowCarpet }, [hasRainbowCarpet])
   useEffect(() => { hasWaveShieldRef.current = hasWaveShield }, [hasWaveShield])
+  useEffect(() => { customSpeedMultRef.current = customSpeedMult }, [customSpeedMult])
 
   // ─── CREATE 3D SCENE ──────────────────────────────
   const initScene = useCallback(() => {
@@ -719,7 +724,7 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
       const boostMult = game.speedBoostTimer > 0 ? 1.5 : 1
       const gravMult = game.gravityMult || 1
       const carpetMult = hasRainbowCarpetRef.current ? 1.5 : 1
-      const speed = CONFIG.PLAYER_BASE_SPEED * speedMult * boostMult * gravMult * carpetMult * dt
+      const speed = CONFIG.PLAYER_BASE_SPEED * speedMult * boostMult * gravMult * carpetMult * customSpeedMultRef.current * dt
 
       let moveX = 0
       let moveZ = 0
@@ -1405,6 +1410,11 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
       case 'luck':
         setLuckMultiplier(item.multiplier)
         break
+      case 'infinity_block':
+        setHasAdminPanel(true)
+        setHasRainbowCarpet(true)
+        setHasWaveShield(true)
+        break
     }
   }
 
@@ -1585,6 +1595,44 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
               <p className="text-white text-xs mt-2 text-center">
                 Selected: {PLAYER_CHARACTERS.find(c => c.emoji === selectedCharacter)?.name || 'Runner'}
               </p>
+            </div>
+
+            {/* Speed Setter */}
+            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-4 mb-4">
+              <p className="text-yellow-300 font-bold text-sm mb-2">⚡ Set Speed Multiplier</p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={speedInput}
+                  onChange={e => setSpeedInput(e.target.value)}
+                  className="flex-1 bg-white/10 text-white font-bold rounded-lg px-3 py-2 text-sm border border-white/20 focus:outline-none focus:border-cyan-400"
+                />
+                <button
+                  onClick={() => {
+                    const v = parseFloat(speedInput)
+                    if (!isNaN(v) && v > 0) setCustomSpeedMult(v)
+                  }}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-white px-4 py-2 rounded-lg font-bold text-sm"
+                >
+                  Set
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[1, 2, 5, 10, 50, 100].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => { setCustomSpeedMult(v); setSpeedInput(String(v)) }}
+                    className={`px-3 py-1 rounded-lg font-bold text-xs transition-all ${customSpeedMult === v ? 'bg-cyan-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                  >
+                    {v}x
+                  </button>
+                ))}
+              </div>
+              {customSpeedMult !== 1 && (
+                <p className="text-cyan-300 font-bold text-xs mt-2">Active: {customSpeedMult}x speed</p>
+              )}
             </div>
 
             {highScore > 0 && (
@@ -1842,11 +1890,16 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
 
         {spinResult && (
           <div className={`text-center mb-4 p-4 rounded-xl ${
-            spinResult.type === 'galaxy_slap' || spinResult.type === 'galaxy_block'
+            spinResult.type === 'infinity_block'
+              ? 'bg-gradient-to-r from-yellow-400 via-pink-500 to-cyan-400 animate-pulse border-4 border-white shadow-2xl'
+              : spinResult.type === 'galaxy_slap' || spinResult.type === 'galaxy_block'
               ? 'bg-gradient-to-r from-purple-600 to-pink-600 animate-pulse'
               : 'bg-white/20'
           }`}>
             <div className="text-2xl font-black text-white">{spinResult.name}</div>
+            {spinResult.type === 'infinity_block' && (
+              <div className="text-sm font-bold text-white mt-1">🌈 Rainbow Carpet + 🌊🛡️ Wave Shield + 👑 Admin Panel UNLOCKED!</div>
+            )}
             {galaxyBlockReward && <div className="text-cyan-300 font-bold mt-1">{galaxyBlockReward}</div>}
           </div>
         )}
@@ -1855,7 +1908,9 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
           {SPIN_WHEEL_ITEMS.map((item, i) => (
             <div key={i} className="text-white bg-white/10 rounded px-2 py-1 flex justify-between items-center gap-2">
               <span>{item.name}</span>
-              <span className="text-yellow-300 font-bold shrink-0">{((item.weight / SPIN_WHEEL_TOTAL_WEIGHT) * 100).toFixed(1)}%</span>
+              <span className="text-yellow-300 font-bold shrink-0" style={{ fontSize: item.displayChance ? '0.55rem' : undefined }}>
+                {item.displayChance ? `${item.displayChance}%` : `${((item.weight / SPIN_WHEEL_TOTAL_WEIGHT) * 100).toFixed(1)}%`}
+              </span>
             </div>
           ))}
         </div>
