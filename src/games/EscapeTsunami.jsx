@@ -217,6 +217,8 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
   const [stopWavesTimeLeft, setStopWavesTimeLeft] = useState(0)
   const [invincibleTimeLeft, setInvincibleTimeLeft] = useState(0)
   const [waveShieldCooldownLeft, setWaveShieldCooldownLeft] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const isPausedRef = useRef(false)
   const [customSpeedMult, setCustomSpeedMult] = useState(1)
   const [speedInput, setSpeedInput] = useState('1')
   const customSpeedMultRef = useRef(1)
@@ -252,6 +254,7 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
   useEffect(() => { hasRainbowCarpetRef.current = hasRainbowCarpet }, [hasRainbowCarpet])
   useEffect(() => { hasWaveShieldRef.current = hasWaveShield }, [hasWaveShield])
   useEffect(() => { customSpeedMultRef.current = customSpeedMult }, [customSpeedMult])
+  useEffect(() => { isPausedRef.current = isPaused }, [isPaused])
 
   // ─── CREATE 3D SCENE ──────────────────────────────
   const initScene = useCallback(() => {
@@ -720,7 +723,7 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
       lastTime = time
 
       const game = gameRef.current
-      if (gameStateRef.current !== 'playing') {
+      if (gameStateRef.current !== 'playing' || isPausedRef.current) {
         animFrameRef.current = requestAnimationFrame(gameLoop)
         renderer.render(scene, camera)
         return
@@ -2142,23 +2145,21 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
           </div>
         </div>
 
-        <div className="bg-black/60 backdrop-blur-sm rounded-lg p-3 text-white text-right text-sm">
-          <div className="font-bold">🏃 Speed Lv.{speedLevel}</div>
-          {hasShield && <div className="text-green-300 font-bold">🛡️ Shield</div>}
-          {hasShieldRecharge && <div className="text-green-200 font-bold text-xs">🔋 Recharge</div>}
-          {hasWaveRadar && <div className="text-blue-200 font-bold text-xs">📡 Radar</div>}
-          {isHiding && <div className="text-yellow-300 font-bold animate-pulse">🛖 HIDING!</div>}
-          {gameRef.current?.galaxySlapActive && <div className="text-purple-300 font-bold">🪐 Galaxy Slap!</div>}
-          {gameRef.current?.rarityBoostActive && <div className="text-pink-300 font-bold">💎 2x Coins!</div>}
-          {luckMultiplier > 1 && <div className="text-green-300 font-bold text-xs">🍀 {luckMultiplier}x Luck</div>}
-          {hasRainbowCarpet && <div className="text-pink-300 font-bold text-xs">🌈 Carpet</div>}
+        <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5 text-white text-right text-xs flex flex-col items-end gap-0.5">
+          <div className="font-bold text-sm">Lv.{speedLevel} 🏃</div>
+          {hasShield && <div className="text-green-300 font-bold">🛡️</div>}
+          {isHiding && <div className="text-yellow-300 font-bold animate-pulse">🛖 Hide!</div>}
+          {gameRef.current?.galaxySlapActive && <div className="text-purple-300 font-bold">🪐</div>}
+          {gameRef.current?.rarityBoostActive && <div className="text-pink-300 font-bold">💎×2</div>}
+          {luckMultiplier > 1 && <div className="text-green-300 font-bold">🍀{luckMultiplier}x</div>}
+          {hasRainbowCarpet && <div className="text-pink-300">🌈</div>}
           {hasWaveShield && (
-            <div className={`font-bold text-xs ${waveShieldCooldownLeft > 0 ? 'text-gray-400' : 'text-cyan-300'}`}>
-              🌊🛡️ {waveShieldCooldownLeft > 0 ? `CD ${waveShieldCooldownLeft}s` : 'Ready'}
+            <div className={`font-bold ${waveShieldCooldownLeft > 0 ? 'text-gray-400' : 'text-cyan-300'}`}>
+              🌊🛡️{waveShieldCooldownLeft > 0 ? ` ${waveShieldCooldownLeft}s` : '✓'}
             </div>
           )}
-          {invincibleTimeLeft > 0 && <div className="text-yellow-300 font-bold text-xs animate-pulse">👑 Invincible {invincibleTimeLeft}s</div>}
-          {stopWavesTimeLeft > 0 && <div className="text-green-400 font-bold text-xs animate-pulse">🛑 Waves stopped {stopWavesTimeLeft}s</div>}
+          {invincibleTimeLeft > 0 && <div className="text-yellow-300 font-bold animate-pulse">👑{invincibleTimeLeft}s</div>}
+          {stopWavesTimeLeft > 0 && <div className="text-green-400 font-bold animate-pulse">🛑{stopWavesTimeLeft}s</div>}
         </div>
       </div>
 
@@ -2166,9 +2167,9 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
       <div className={`absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold z-20 pointer-events-none ${
         gameRef.current?.waveActive ? 'bg-red-600/90 animate-pulse text-white' : 'bg-green-600/80 text-white'
       }`}>
-        {gameRef.current?.waveActive ? '🌊 WAVE! Get inside a 🟢 green shelter zone!' :
-         hasWaveRadar && waveCountdown > 0 ? `📡 Wave in ${waveCountdown}s — reach a 🟢 green zone!` :
-         '🏁 Run to the 🏁 finish! Hide in 🟢 green shelter zones when a wave hits!'}
+        {gameRef.current?.waveActive ? '🌊 WAVE! Find 🟢 shelter!' :
+         hasWaveRadar && waveCountdown > 0 ? `📡 Wave in ${waveCountdown}s` :
+         '🏁 Run to finish!'}
       </div>
 
       {/* Zone goal */}
@@ -2317,11 +2318,39 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
       )}
 
       <button
-        onClick={onBack}
-        className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-500 text-white px-3 py-1 rounded font-bold text-sm z-20"
+        onClick={() => setIsPaused(true)}
+        className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white w-9 h-9 rounded-lg font-black text-lg z-20 flex items-center justify-center"
       >
-        ✕ Quit
+        ⏸
       </button>
+
+      {/* Pause overlay */}
+      {isPaused && (
+        <div className="absolute inset-0 bg-black/70 z-40 flex items-center justify-center">
+          <div className="bg-gray-900 border border-white/20 rounded-2xl p-6 w-72 shadow-2xl flex flex-col gap-3">
+            <h2 className="text-2xl font-black text-white text-center">⏸ Paused</h2>
+            <p className="text-gray-400 text-xs text-center -mt-1">Progress is saved automatically</p>
+            <button
+              onClick={() => setIsPaused(false)}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black text-lg"
+            >
+              ▶ Resume
+            </button>
+            <button
+              onClick={() => { setIsPaused(false); setGameState('menu') }}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-bold"
+            >
+              💾 Save & Quit to Menu
+            </button>
+            <button
+              onClick={() => { setIsPaused(false); onBack() }}
+              className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 font-bold text-sm"
+            >
+              ✕ Exit Game
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
