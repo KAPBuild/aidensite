@@ -139,6 +139,27 @@ function createEmojiSprite(emoji, scale = 2) {
   return sprite
 }
 
+// ─── SAVE / SESSION ────────────────────────────────────────
+const SESSION_KEY = 'escapeTsunami_session'
+const SAVE_KEY = (u) => `escapeTsunami_save_${u}`
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+function getSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+    if (!s) return null
+    if (Date.now() - s.timestamp > SESSION_TTL) { localStorage.removeItem(SESSION_KEY); return null }
+    return s
+  } catch { return null }
+}
+function getUserSave(username) {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY(username)) || '{}') } catch { return {} }
+}
+function saveUserData(username, data) {
+  localStorage.setItem(SAVE_KEY(username), JSON.stringify(data))
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ username, timestamp: Date.now() }))
+}
+
 export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
   const containerRef = useRef(null)
   const sceneRef = useRef(null)
@@ -147,49 +168,51 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
   const gameRef = useRef(null)
   const animFrameRef = useRef(null)
 
-  const [gameState, setGameState] = useState(initialState)
-  const [selectedCharacter, setSelectedCharacter] = useState(() => {
-    return localStorage.getItem('escapeTsunamiCharacter') || '🧑'
+  // ─── load session + save once on mount ───
+  const [_init] = useState(() => {
+    const session = getSession()
+    const save = session ? getUserSave(session.username) : {}
+    return { session, save }
   })
+  const [username, setUsername] = useState(_init.session?.username || '')
+  const [usernameInput, setUsernameInput] = useState('')
+
+  const [gameState, setGameState] = useState(_init.session ? initialState : 'username')
+  const [selectedCharacter, setSelectedCharacter] = useState(_init.save.selectedCharacter || '🧑')
   const [score, setScore] = useState(0)
-  const [coins, setCoins] = useState(0)
-  const [speedLevel, setSpeedLevel] = useState(0)
+  const [coins, setCoins] = useState(_init.save.coins || 0)
+  const [speedLevel, setSpeedLevel] = useState(_init.save.speedLevel || 0)
   const [currentArea, setCurrentArea] = useState('Common')
   const [tsunamiWarning, setTsunamiWarning] = useState('')
-  const [highScore, setHighScore] = useState(() => {
-    return parseInt(localStorage.getItem('escapeTsunamiHighScore') || '0')
-  })
+  const [highScore, setHighScore] = useState(_init.save.highScore || 0)
   const [message, setMessage] = useState('')
   const [isHiding, setIsHiding] = useState(false)
   const [hasShield, setHasShield] = useState(false)
   const [spinResult, setSpinResult] = useState(null)
   const [isSpinning, setIsSpinning] = useState(false)
   const [spinAngle, setSpinAngle] = useState(0)
-  const [freeSpins, setFreeSpins] = useState(1)
+  const [freeSpins, setFreeSpins] = useState(_init.save.freeSpins ?? 1)
   const [damageFlash, setDamageFlash] = useState(false)
-  const [roundNum, setRoundNum] = useState(1)
+  const [roundNum, setRoundNum] = useState(_init.save.roundNum || 1)
   const [galaxyBlockReward, setGalaxyBlockReward] = useState(null)
   const [shouldStartGame, setShouldStartGame] = useState(false)
-  const [areaTransition, setAreaTransition] = useState(null) // { name, emoji, color }
-  const [hasShieldRecharge, setHasShieldRecharge] = useState(false)
-  const [hasWaveRadar, setHasWaveRadar] = useState(false)
+  const [areaTransition, setAreaTransition] = useState(null)
+  const [hasShieldRecharge, setHasShieldRecharge] = useState(_init.save.hasShieldRecharge || false)
+  const [hasWaveRadar, setHasWaveRadar] = useState(_init.save.hasWaveRadar || false)
   const [waveCountdown, setWaveCountdown] = useState(0)
-  const [milestones, setMilestones] = useState(() => {
-    const saved = localStorage.getItem('escapeTsunamiMilestones')
-    return saved ? JSON.parse(saved) : { highestZone: 0, badges: [] }
-  })
+  const [milestones, setMilestones] = useState(_init.save.milestones || { highestZone: 0, badges: [] })
   const [zoneBadgeEarned, setZoneBadgeEarned] = useState(null)
   const [currentZoneGoal, setCurrentZoneGoal] = useState('')
-  const [lightningStrikes, setLightningStrikes] = useState([]) // for Divine zone
+  const [lightningStrikes, setLightningStrikes] = useState([])
   const [rarityBoostTimer, setRarityBoostTimer] = useState(0)
-  const [luckMultiplier, setLuckMultiplier] = useState(1)
-  const [galaxyLuckyBoxes, setGalaxyLuckyBoxes] = useState(0)
+  const [luckMultiplier, setLuckMultiplier] = useState(_init.save.luckMultiplier || 1)
+  const [galaxyLuckyBoxes, setGalaxyLuckyBoxes] = useState(_init.save.galaxyLuckyBoxes || 0)
   const [earthquakeShake, setEarthquakeShake] = useState(false)
   const [disasterWarning, setDisasterWarning] = useState('')
   const [disasterLightningWarnings, setDisasterLightningWarnings] = useState([])
-  const [hasAdminPanel, setHasAdminPanel] = useState(false)
-  const [hasRainbowCarpet, setHasRainbowCarpet] = useState(false)
-  const [hasWaveShield, setHasWaveShield] = useState(false)
+  const [hasAdminPanel, setHasAdminPanel] = useState(_init.save.hasAdminPanel || false)
+  const [hasRainbowCarpet, setHasRainbowCarpet] = useState(_init.save.hasRainbowCarpet || false)
+  const [hasWaveShield, setHasWaveShield] = useState(_init.save.hasWaveShield || false)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [stopWavesTimeLeft, setStopWavesTimeLeft] = useState(0)
   const [invincibleTimeLeft, setInvincibleTimeLeft] = useState(0)
@@ -1325,6 +1348,50 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
     }
   }, [])
 
+  // ─── AUTO-SAVE ─────────────────────────
+  useEffect(() => {
+    if (!username) return
+    saveUserData(username, {
+      coins, speedLevel, highScore, milestones, selectedCharacter,
+      hasShieldRecharge, hasWaveRadar, hasRainbowCarpet, hasWaveShield,
+      hasAdminPanel, galaxyLuckyBoxes, luckMultiplier, freeSpins, roundNum,
+    })
+  }, [username, coins, speedLevel, highScore, milestones, selectedCharacter,
+      hasShieldRecharge, hasWaveRadar, hasRainbowCarpet, hasWaveShield,
+      hasAdminPanel, galaxyLuckyBoxes, luckMultiplier, freeSpins, roundNum])
+
+  const submitUsername = () => {
+    const name = usernameInput.trim()
+    if (!name) return
+    const existing = getUserSave(name)
+    if (Object.keys(existing).length > 0) {
+      if (existing.coins !== undefined) setCoins(existing.coins)
+      if (existing.speedLevel !== undefined) setSpeedLevel(existing.speedLevel)
+      if (existing.highScore !== undefined) setHighScore(existing.highScore)
+      if (existing.milestones) setMilestones(existing.milestones)
+      if (existing.selectedCharacter) setSelectedCharacter(existing.selectedCharacter)
+      if (existing.hasShieldRecharge !== undefined) setHasShieldRecharge(existing.hasShieldRecharge)
+      if (existing.hasWaveRadar !== undefined) setHasWaveRadar(existing.hasWaveRadar)
+      if (existing.hasRainbowCarpet !== undefined) setHasRainbowCarpet(existing.hasRainbowCarpet)
+      if (existing.hasWaveShield !== undefined) setHasWaveShield(existing.hasWaveShield)
+      if (existing.hasAdminPanel !== undefined) setHasAdminPanel(existing.hasAdminPanel)
+      if (existing.galaxyLuckyBoxes !== undefined) setGalaxyLuckyBoxes(existing.galaxyLuckyBoxes)
+      if (existing.luckMultiplier !== undefined) setLuckMultiplier(existing.luckMultiplier)
+      if (existing.freeSpins !== undefined) setFreeSpins(existing.freeSpins)
+      if (existing.roundNum !== undefined) setRoundNum(existing.roundNum)
+    }
+    setUsername(name)
+    saveUserData(name, existing)
+    setGameState('menu')
+  }
+
+  const switchUser = () => {
+    localStorage.removeItem(SESSION_KEY)
+    setUsername('')
+    setUsernameInput('')
+    setGameState('username')
+  }
+
   // ─── SPIN WHEEL ────────────────────────
   const doSpin = () => {
     if (isSpinning) return
@@ -1514,6 +1581,41 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
 
   // ─── RENDER ────────────────────────────
 
+  // USERNAME ENTRY
+  if (gameState === 'username') {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-600 flex flex-col items-center justify-center p-4">
+        <button onClick={onBack} className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-bold backdrop-blur-sm">
+          ← Back
+        </button>
+        <div className="text-7xl mb-4">🌊</div>
+        <h1 className="text-4xl font-black text-white mb-1">ESCAPE TSUNAMI</h1>
+        <p className="text-cyan-200 font-bold mb-8">Enter a username to save your progress</p>
+        <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 w-full max-w-sm">
+          <p className="text-white font-bold mb-3">👤 Choose a Username</p>
+          <input
+            type="text"
+            placeholder="e.g. SpeedRunner99"
+            maxLength={20}
+            value={usernameInput}
+            onChange={e => setUsernameInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submitUsername()}
+            className="w-full bg-white/10 text-white font-bold rounded-lg px-4 py-3 text-lg border border-white/20 focus:outline-none focus:border-cyan-400 mb-2 placeholder-white/40"
+            autoFocus
+          />
+          <p className="text-white/50 text-xs mb-4">Progress saves on this device for 7 days. Same name = same save.</p>
+          <button
+            onClick={submitUsername}
+            disabled={!usernameInput.trim()}
+            className={`w-full py-3 rounded-xl font-black text-lg transition-all ${usernameInput.trim() ? 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-105 text-white shadow-xl' : 'bg-white/10 text-white/40'}`}
+          >
+            Let's Go! 🏃
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // MENU
   if (gameState === 'menu') {
     return (
@@ -1521,6 +1623,12 @@ export default function EscapeTsunami({ onBack, initialState = 'menu' }) {
         <button onClick={onBack} className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-bold backdrop-blur-sm z-20">
           ← Back
         </button>
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+          <span className="text-white/70 text-sm font-bold">👤 {username}</span>
+          <button onClick={switchUser} className="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-lg font-bold text-xs backdrop-blur-sm">
+            Switch
+          </button>
+        </div>
 
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto flex flex-col items-center px-4 pt-16 pb-4">
